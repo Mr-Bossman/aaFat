@@ -1,0 +1,1 @@
+ gcc -g aaFat.c example.c -lm -o example && ./example
