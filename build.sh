@@ -1,1 +1,1 @@
- gcc -g aaFat.c example.c -lm -o example && ./example
+ gcc -Wall -pedantic -Wno-unused-function -g aaFat.c example.c -lm -o example && ./example
