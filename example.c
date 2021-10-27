@@ -22,11 +22,11 @@ int main(){
     printf("%d\n",FAT_ERRpop());
     print_file_table();
     print_fat();
-    char data[] ="small test";
-    write_file("3",data,sizeof(data),1);
+    char data[] ="If successful, returns the smaller of two floating point values. The value returned is exact and does not depend on any rounding modes.";
+    write_file("3",data,sizeof(data),8);
     printf("%d\n",FAT_ERRpop());
     memset(data,0,sizeof(data));
-    read_file("3",data,sizeof(data),1);
+    read_file("3",data,20,65);
     printf("%d\n",FAT_ERRpop());
     puts(data);
     print_file_table();

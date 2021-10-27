@@ -5,7 +5,7 @@
 #ifdef EXAMPLE_
 
 #define TABLE_LEN 15
-#define BLOCK_SIZE 512
+#define BLOCK_SIZE 64
 unsigned char store[BLOCK_SIZE*TABLE_LEN] = {0};
 
 int read_blk(size_t offset,unsigned char* mem,size_t len){
@@ -25,7 +25,6 @@ int write_blk(size_t offset,unsigned char* mem,size_t len){
 // fix looping check // https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af
 //add more specific err
 //double check error checks
-// fix read and write offset
 // add get size
 static enum ERR err = ERR_OK;
 #define chk_err() if(err)return;
@@ -255,7 +254,12 @@ int get_file_index(name_file* ret,size_t index){
     return err;
 }
 
-int get_file_block(const char name[16]){
+int get_file_block(const char * name){
+    size_t b = strnlen(name,16);
+    if(b==16){
+        err = BLK_NSP;
+        return err;
+    }
     size_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while((blocks = get_nextblock(blocks))){
@@ -279,8 +283,12 @@ int get_file_block(const char name[16]){
     return err;
 }
 
-int new_file(const char name[16]){
+int new_file(const char *name){
     size_t b = strnlen(name,16);
+    if(b==16){
+        err = BLK_NSP;
+        return err;
+    }
     char name_padded[16] = {0};
     memcpy(name_padded,name,b);
     size_t blocks = 0;
@@ -314,8 +322,12 @@ int new_file(const char name[16]){
     return ERR_OK;
 }
 
-int del_file(const char name[16]){
+int del_file(const char *name){
     size_t b = strnlen(name,16);
+    if(b==16){
+        err = BLK_NSP;
+        return err;
+    }
     char name_padded[16] = {0};
     memcpy(name_padded,name,b);
     size_t blocks = 0;
@@ -357,14 +369,22 @@ size_t read_file(const char * file_name,void *buf,size_t count,size_t offset){
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
     while((blk = get_nextblock(blk))){
         chk_err_e();
+        if(offset >= BLOCK_SIZE){
+            offset -= BLOCK_SIZE;
+            continue;
+        }
         if(read_blk(blk*BLOCK_SIZE,BLOCKS,BLOCK_SIZE)){
             err = READ_BLK_ERR;
             return err;
         }
         int cpy_len = fmin(count, BLOCK_SIZE);
+        printf("%djj\n",offset);
+        if(cpy_len+offset > BLOCK_SIZE)
+            cpy_len -= offset;
         count -= cpy_len;
-        memcpy(buf,BLOCKS,cpy_len);
-        buf+=cpy_len;
+        memcpy(buf,BLOCKS+offset,cpy_len);
+        buf += cpy_len;
+        offset = 0;
         if(!count)break;
     }
     return ERR_OK;
@@ -373,7 +393,7 @@ size_t write_file(const char * file_name,void *buf,size_t count,size_t offset){
     size_t blk = get_file_block(file_name);
     chk_err_e();
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
-    while(count){
+    while(offset+count){
         size_t tmp;
         do{
             tmp = get_nextblock(blk);
@@ -382,18 +402,25 @@ size_t write_file(const char * file_name,void *buf,size_t count,size_t offset){
             chk_err_e();
         } while(!tmp);
         blk=tmp;
+        if(offset > BLOCK_SIZE){
+            offset -= BLOCK_SIZE;
+            continue;
+        }
         if(read_blk(blk*BLOCK_SIZE,BLOCKS,BLOCK_SIZE)){
             err = READ_BLK_ERR;
             return err;
         }
         int cpy_len = fmin(count, BLOCK_SIZE);
+        if(cpy_len+offset > BLOCK_SIZE)
+            cpy_len -= offset;
         count -= cpy_len;
-        memcpy(BLOCKS,buf,cpy_len);
+        memcpy(BLOCKS+offset,buf,cpy_len);
         buf+=cpy_len;
         if(write_blk(blk*BLOCK_SIZE,BLOCKS,BLOCK_SIZE)){
             err = READ_BLK_ERR;
             return err;
         }
+        offset = 0;
     }
     return ERR_OK;
 }
@@ -404,7 +431,7 @@ void print_fat(){
         printf("%ld,",((size_t*)fat)[i]);
     puts("\n");
     for(size_t i = 0;i < TABLE_LEN;i++)
-        printf("%ld,",i);
+        printf("%ld,",i+1);
     puts("\n");
 }
 
