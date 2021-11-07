@@ -25,10 +25,12 @@ int write_blk(size_t offset, unsigned char *mem)
 }
 
 #endif
-//ADD has init FAT
-// fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af
-//double check error checks
+
+/* TODO: fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af */
+/* TODO: double check error checks */
+
 static enum ERR err = ERR_OK;
+
 #define chk_err() \
     if (err)      \
         return;
@@ -43,21 +45,17 @@ enum ERR FAT_ERRpop()
     return tmp;
 }
 
-// table == oneblock
 int write_FAT()
 {
-    // one is the file name table
     unsigned char fat[BLOCK_SIZE];
     memset(fat, 0xFF, BLOCK_SIZE);
-    ((size_t *)fat)[0] = 1; // size in bytes
-    ((size_t *)fat)[1] = 0; // size in bytes
+    ((size_t *)fat)[0] = 1;
+    ((size_t *)fat)[1] = 0;
     if (write_blk(0, fat))
     {
         err = WRITE_BLK_ERR;
         return err;
     }
-
-    // clear block
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(1, fat))
     {
@@ -69,7 +67,6 @@ int write_FAT()
 
 int validate_FAT()
 {
-    // one is the file name table
     unsigned char fat[BLOCK_SIZE];
     if (read_blk(0, fat))
     {
@@ -84,18 +81,17 @@ int validate_FAT()
     {
         return -FS_INVALID;
     }
-    //check validity of fat and name file
+    /* TODO: check validity of fat and name file */
     return ERR_OK;
 }
 
-// zero delims end on chain
 static size_t get_nextblock(size_t block_index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
     if (block_index > TABLE_LEN)
     {
         err = BLK_OOB;
-        return err; // -1 err cant have index more than table
+        return err;
     }
     if (read_blk(0, fat))
     {
@@ -103,11 +99,10 @@ static size_t get_nextblock(size_t block_index)
         return err;
     }
     size_t tmp = ((size_t *)fat)[block_index];
-    // zero delims end of file
     if ((int)tmp < 0)
     {
         err = FS_INVALID;
-        return err; // -1 is a free block
+        return err;
     }
     return tmp;
 }
@@ -148,9 +143,9 @@ static size_t get_freeblock()
     }
     for (size_t i = 0; i < TABLE_LEN; i++)
         if (((size_t *)fat)[i] == -1)
-            return i; // -1 is a free block
+            return i;
     err = BLK_NSP;
-    return err; // -1 err cant have index more than table
+    return err;
 }
 
 static int extend_blocks(size_t index)
@@ -163,6 +158,7 @@ static int extend_blocks(size_t index)
     }
     int bb = 0;
     size_t last;
+    /* TODO: loop check */
     while (index)
     { // we can make loops inside struct
         last = index;
@@ -174,7 +170,6 @@ static int extend_blocks(size_t index)
             return err; //crap err check
         }
     }
-    //last index zero is last
     size_t tmp = get_freeblock();
     chk_err_e();
     ((size_t *)fat)[last] = tmp;
@@ -185,7 +180,6 @@ static int extend_blocks(size_t index)
         return err;
     }
 
-    // clear block
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(tmp, fat))
         err = WRITE_BLK_ERR;
@@ -209,7 +203,6 @@ static size_t add_block()
         return err;
     }
 
-    // clear block
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(tmp, fat))
     {
@@ -227,7 +220,6 @@ static int del_block(size_t index)
         err = BLK_OOB;
         return err;
     }
-    // mabey check for file name table too
     unsigned char fat[BLOCK_SIZE] = {0};
     if (read_blk(0, fat))
     {
@@ -236,6 +228,7 @@ static int del_block(size_t index)
     }
     int errb = 0;
     size_t last;
+    /* TODO: loop check */
     while (index)
     { // we can make loops inside struct
         last = index;
@@ -344,7 +337,7 @@ int get_file_block(const char *name)
         size_t i = 0;
         while (1)
         {
-            size_t b = strnlen(((name_file *)name_table)[i].name, 16); // check for dups
+            size_t b = strnlen(((name_file *)name_table)[i].name, 16);
             if (b == strnlen(name, 16))
                 if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
                     return ((name_file *)name_table)[i].index;
@@ -378,7 +371,7 @@ int get_file_size(const char *name)
         size_t i = 0;
         while (1)
         {
-            size_t b = strnlen(((name_file *)name_table)[i].name, 16); // check for dups
+            size_t b = strnlen(((name_file *)name_table)[i].name, 16);
             if (b == strnlen(name, 16))
                 if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
                     return ((name_file *)name_table)[i].size_b;
@@ -412,7 +405,7 @@ static int new_file_size(const char *name, size_t size)
         size_t i = 0;
         while (1)
         {
-            size_t b = strnlen(((name_file *)name_table)[i].name, 16); // check for dups
+            size_t b = strnlen(((name_file *)name_table)[i].name, 16);
             if (b == strnlen(name, 16))
                 if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
                 {
@@ -457,7 +450,8 @@ int new_file(const char *name)
         size_t i = 0;
         while (1)
         {
-            size_t b = strnlen(((name_file *)name_table)[i].name, 16); // check for dups
+            /* TODO: check for existing */
+            size_t b = strnlen(((name_file *)name_table)[i].name, 16);
             if (!b)
             {
                 name_file tmp;
@@ -505,7 +499,7 @@ int del_file(const char *name)
         size_t i = 0;
         while (1)
         {
-            size_t b = strnlen(((name_file *)name_table)[i].name, 16); // check for dups
+            size_t b = strnlen(((name_file *)name_table)[i].name, 16);
             if (b == strnlen(name, 16))
                 if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
                 {
@@ -634,7 +628,7 @@ void print_file_table()
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
-        read_blk(blocks, name_table); //err check
+        read_blk(blocks, name_table);
         size_t i = 0;
         while (1)
         {
