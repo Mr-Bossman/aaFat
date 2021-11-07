@@ -513,8 +513,9 @@ int del_file(const char *name)
     }
     return ERR_OK;
 }
-size_t read_file(const char *file_name, void *buf, size_t count, size_t offset)
+size_t read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
+    char *buf = buffer;
     int err = 0;
     if (count + offset > get_file_size(file_name))
     {
@@ -550,8 +551,9 @@ size_t read_file(const char *file_name, void *buf, size_t count, size_t offset)
     }
     return ERR_OK;
 }
-size_t write_file(const char *file_name, void *buf, size_t count, size_t offset)
+size_t write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
+    char *buf = buffer;
     size_t blk = get_file_block(file_name);
     chk_err_e();
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
