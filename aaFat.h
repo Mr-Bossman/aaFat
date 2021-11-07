@@ -1,6 +1,3 @@
-
-
-
 #include "stdio.h"
 #include "stdlib.h"
 #include "stdint.h"
@@ -34,19 +31,21 @@ size_t read_file(const char * file_name,void *buf,size_t count,size_t offset);
 size_t write_file(const char * file_name,void *buf,size_t count,size_t offset);
 void print_fat();
 void print_file_table();
+int print_ERR();
 
+#define ENUMS(x) [x] = #x
 typedef enum ERR {
-    ERR_OK = 0,
-    READ_BLK_ERR = -1,
-    WRITE_BLK_ERR = -2,
-    BLK_OOB = -3, // out of bounds
-    BLK_NSP = -4, // no space left
-    BLK_EOF = -5, // end of linked list
-    FS_LOOP = -6, //linked list refers itself
-    FS_FNF = -7, // file not found
-    FS_BNAME = -8, // bad name
-    FS_OOB = -9, // cant read more than f size
-    FS_INVALID = -10, // bad Ftable
+    ERR_OK,
+    READ_BLK_ERR,
+    WRITE_BLK_ERR,
+    BLK_OOB, // out of bounds
+    BLK_NSP, // no space left
+    BLK_EOF, // end of linked list
+    FS_LOOP, //linked list refers itself
+    FS_FNF, // file not found
+    FS_BNAME, // bad name
+    FS_OOB, // cant read more than f size
+    FS_INVALID, // bad Ftable
 }ERR;
-enum ERR FAT_ERRpop();
+ERR FAT_ERRpop();
 #endif
