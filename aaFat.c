@@ -53,7 +53,7 @@ int write_FAT()
     ((size_t *)fat)[1] = 0; // size in bytes
     if (write_blk(0, fat))
     {
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
         return err;
     }
 
@@ -61,7 +61,7 @@ int write_FAT()
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(1, fat))
     {
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
         return err;
     }
     return ERR_OK;
@@ -75,11 +75,13 @@ int validate_FAT()
         err = READ_BLK_ERR;
         return err;
     }
-    if(((size_t*)fat)[0] != 1){
-        return -1;
+    if (((size_t *)fat)[0] != 1)
+    {
+        return -FS_INVALID;
     }
-    if(((size_t*)fat)[1] != 0){
-        return -1;
+    if (((size_t *)fat)[1] != 0)
+    {
+        return -FS_INVALID;
     }
     //check validity of fat and name file
     return ERR_OK;
@@ -99,9 +101,10 @@ static size_t get_nextblock(size_t block_index)
         return err;
     }
     size_t tmp = ((size_t *)fat)[block_index];
-    if (tmp < 0)
+    // zero delims end of file
+    if ((int)tmp < 0)
     {
-        err = BLK_NSP;
+        err = FS_INVALID;
         return err; // -1 is a free block
     }
     return tmp;
@@ -142,7 +145,7 @@ static size_t get_freeblock()
     for (size_t i = 0; i < TABLE_LEN; i++)
         if (((size_t *)fat)[i] == -1)
             return i; // -1 is a free block
-    err = BLK_EOF;
+    err = BLK_NSP;
     return err; // -1 err cant have index more than table
 }
 static int extend_blocks(size_t index)
@@ -161,7 +164,10 @@ static int extend_blocks(size_t index)
         index = ((size_t *)fat)[index];
         bb++;
         if (bb > TABLE_LEN)
-            return -2; //crap err check
+        {
+            err = FS_LOOP;
+            return err; //crap err check
+        }
     }
     //last index zero is last
     size_t tmp = get_freeblock();
@@ -170,14 +176,14 @@ static int extend_blocks(size_t index)
     ((size_t *)fat)[tmp] = 0;
     if (write_blk(0, fat))
     {
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
         return err;
     }
 
     // clear block
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(tmp, fat))
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
     return err;
 }
 
@@ -194,7 +200,7 @@ static size_t add_block()
     ((size_t *)fat)[tmp] = 0;
     if (write_blk(0, fat))
     {
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
         return err;
     }
 
@@ -202,7 +208,7 @@ static size_t add_block()
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(tmp, fat))
     {
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
         return err;
     }
 
@@ -211,9 +217,9 @@ static size_t add_block()
 
 static int del_block(size_t index)
 {
-    if (index == 0)
+    if (index == 0 || index > TABLE_LEN)
     {
-        err = BLK_EOF;
+        err = BLK_OOB;
         return err;
     }
     // mabey check for file name table too
@@ -223,20 +229,23 @@ static int del_block(size_t index)
         err = READ_BLK_ERR;
         return err;
     }
-    int err = 0;
+    int errb = 0;
     size_t last;
     while (index)
     { // we can make loops inside struct
         last = index;
         index = ((size_t *)fat)[index];
         ((size_t *)fat)[last] = -1;
-        err++;
-        if (err > TABLE_LEN)
-            return -3; //crap err check
+        errb++;
+        if (errb > TABLE_LEN)
+        {
+            err = FS_LOOP;
+            return err; //crap err check
+        }
     }
     if (write_blk(0, fat))
     {
-        err = READ_BLK_ERR;
+        err = WRITE_BLK_ERR;
         return err;
     }
     return ERR_OK;
@@ -305,7 +314,7 @@ int get_file_index(name_file *ret, size_t index)
                 break;
         }
     }
-    err = BLK_EOF;
+    err = FS_FNF;
     return err;
 }
 
@@ -314,7 +323,7 @@ int get_file_block(const char *name)
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
-        err = BLK_NSP;
+        err = FS_BNAME;
         return err;
     }
     size_t blocks = 0;
@@ -339,7 +348,7 @@ int get_file_block(const char *name)
                 break;
         }
     }
-    err = BLK_EOF;
+    err = FS_FNF;
     return err;
 }
 
@@ -348,7 +357,7 @@ int get_file_size(const char *name)
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
-        err = BLK_NSP;
+        err = FS_BNAME;
         return err;
     }
     size_t blocks = 0;
@@ -373,7 +382,7 @@ int get_file_size(const char *name)
                 break;
         }
     }
-    err = BLK_EOF;
+    err = FS_FNF;
     return err;
 }
 
@@ -382,7 +391,7 @@ static int new_file_size(const char *name, size_t size)
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
-        err = BLK_NSP;
+        err = FS_BNAME;
         return err;
     }
     size_t blocks = 0;
@@ -406,7 +415,7 @@ static int new_file_size(const char *name, size_t size)
                     ((name_file *)name_table)[i].size_b = fmax(size, tmp);
                     if (write_blk(blocks, name_table))
                     {
-                        err = READ_BLK_ERR;
+                        err = WRITE_BLK_ERR;
                         return err;
                     }
                     return ERR_OK;
@@ -416,7 +425,7 @@ static int new_file_size(const char *name, size_t size)
                 break;
         }
     }
-    err = BLK_EOF;
+    err = FS_FNF;
     return err;
 }
 int new_file(const char *name)
@@ -424,7 +433,7 @@ int new_file(const char *name)
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
-        err = BLK_NSP;
+        err = FS_BNAME;
         return err;
     }
     char name_padded[16] = {0};
@@ -453,7 +462,7 @@ int new_file(const char *name)
                 ((name_file *)name_table)[i] = tmp;
                 if (write_blk(blocks, name_table))
                 {
-                    err = READ_BLK_ERR;
+                    err = WRITE_BLK_ERR;
                     return err;
                 }
                 break;
@@ -466,12 +475,13 @@ int new_file(const char *name)
     return ERR_OK;
 }
 
+// fnf
 int del_file(const char *name)
 {
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
-        err = BLK_NSP;
+        err = FS_BNAME;
         return err;
     }
     char name_padded[16] = {0};
@@ -501,7 +511,7 @@ int del_file(const char *name)
                     ((name_file *)name_table)[i] = tmp;
                     if (write_blk(blocks, name_table))
                     {
-                        err = READ_BLK_ERR;
+                        err = WRITE_BLK_ERR;
                         return err;
                     }
                     break;
@@ -513,13 +523,13 @@ int del_file(const char *name)
     }
     return ERR_OK;
 }
+//fnf
 size_t read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
-    int err = 0;
     if (count + offset > get_file_size(file_name))
     {
-        err = EOF;
+        err = FS_OOB;
         return err;
     }
     chk_err_e();
@@ -551,6 +561,7 @@ size_t read_file(const char *file_name, void *buffer, size_t count, size_t offse
     }
     return ERR_OK;
 }
+//fnf
 size_t write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
@@ -588,7 +599,7 @@ size_t write_file(const char *file_name, void *buffer, size_t count, size_t offs
         buf += cpy_len;
         if (write_blk(blk, BLOCKS))
         {
-            err = READ_BLK_ERR;
+            err = WRITE_BLK_ERR;
             return err;
         }
         offset = 0;

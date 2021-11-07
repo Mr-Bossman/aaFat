@@ -41,7 +41,12 @@ typedef enum ERR {
     WRITE_BLK_ERR = -2,
     BLK_OOB = -3, // out of bounds
     BLK_NSP = -4, // no space left
-    BLK_EOF = -5
+    BLK_EOF = -5, // end of linked list
+    FS_LOOP = -6, //linked list reffers itself
+    FS_FNF = -7, // file not found
+    FS_BNAME = -8, // bad name
+    FS_OOB = -9, // cant read more than f size
+    FS_INVALID = -10, // bad Ftable
 }ERR;
 enum ERR FAT_ERRpop();
 #endif
