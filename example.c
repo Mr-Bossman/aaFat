@@ -45,7 +45,7 @@ int main(){
     print_file_table();
     print_fat();
 
-    get_file_size("3");
+    printf("%d\n",get_file_size("3"));
     print_ERR();
     return 0;
 }

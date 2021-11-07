@@ -36,7 +36,7 @@ int write_blk(size_t offset, unsigned char *mem)
 #include <unistd.h>
 #endif
 
-/* TODO: clear error on extern funcs */
+/* TODO: clear error on extern funcs / check*/
 /* TODO: fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af */
 /* TODO: double check error checks */
 /* TODO: fix int/size_t casts */
@@ -65,7 +65,7 @@ static char *ERR_NAME[] =
 int print_ERR()
 {
     ERR tmp = FAT_ERRpop();
-    int ret = printf("ERR: %s\n", ERR_NAME[tmp]);
+    int ret = printf("ERR: %s\n", ERR_NAME[-tmp]);
     if (tmp != ERR_OK)
     {
 #ifdef BACKTRACE_ERR
@@ -80,7 +80,8 @@ int print_ERR()
 
 int write_FAT()
 {
-    if(BLOCK_SIZE < TABLE_LEN*sizeof(size_t)){
+    if (BLOCK_SIZE < TABLE_LEN * sizeof(size_t))
+    {
         err = FS_INVALID;
         return err;
     }
@@ -472,6 +473,18 @@ int new_file(const char *name)
         err = -FS_BNAME;
         return err;
     }
+    int tmp = get_file_block(name);
+    if (tmp > 0)
+    {
+        err = -FS_BNAME;
+        return err;
+    }
+    else if (tmp != -FS_FNF)
+    {
+        chk_err_e();
+    }
+    else
+        err = -ERR_OK;
     char name_padded[16] = {0};
     memcpy(name_padded, name, b);
     size_t blocks = 0;
@@ -487,7 +500,6 @@ int new_file(const char *name)
         size_t i = 0;
         while (1)
         {
-            /* TODO: check for existing */
             size_t b = strnlen(((name_file *)name_table)[i].name, 16);
             if (!b)
             {
@@ -520,7 +532,7 @@ int del_file(const char *name)
         err = -FS_BNAME;
         return err;
     }
-    ERR ret = FS_FNF;
+    ERR ret = -FS_FNF;
     char name_padded[16] = {0};
     memcpy(name_padded, name, b);
     size_t blocks = 0;
@@ -540,7 +552,7 @@ int del_file(const char *name)
             if (b == strnlen(name, 16))
                 if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
                 {
-                    ret = ERR_OK;
+                    ret = -ERR_OK;
                     del_block(((name_file *)name_table)[i].index);
                     chk_err_e();
                     name_file tmp;
