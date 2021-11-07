@@ -283,6 +283,70 @@ int get_file_block(const char * name){
     return err;
 }
 
+int get_file_size(const char * name){
+    size_t b = strnlen(name,16);
+    if(b==16){
+        err = BLK_NSP;
+        return err;
+    }
+    size_t blocks = 0;
+    unsigned char name_table[BLOCK_SIZE] = {0};
+    while((blocks = get_nextblock(blocks))){
+        chk_err_e();
+        if(read_blk(blocks*BLOCK_SIZE,name_table,BLOCK_SIZE)){
+            err = READ_BLK_ERR;
+            return err;
+        }
+        size_t i = 0;
+        while(1){
+            size_t b = strnlen(((name_file*)name_table)[i].name,16); // check for dups
+            if(b == strnlen(name,16))
+                if(!strncmp(name,((name_file*)name_table)[i].name,16))
+                    return ((name_file*)name_table)[i].size_b;
+            i++;
+            if(i*sizeof(name_file) >= BLOCK_SIZE)
+                break;
+        }
+    }
+    err = BLK_EOF;
+    return err;
+}
+
+static int new_file_size(const char * name,size_t size){
+    size_t b = strnlen(name,16);
+    if(b==16){
+        err = BLK_NSP;
+        return err;
+    }
+    size_t blocks = 0;
+    unsigned char name_table[BLOCK_SIZE] = {0};
+    while((blocks = get_nextblock(blocks))){
+        chk_err_e();
+        if(read_blk(blocks*BLOCK_SIZE,name_table,BLOCK_SIZE)){
+            err = READ_BLK_ERR;
+            return err;
+        }
+        size_t i = 0;
+        while(1){
+            size_t b = strnlen(((name_file*)name_table)[i].name,16); // check for dups
+            if(b == strnlen(name,16))
+                if(!strncmp(name,((name_file*)name_table)[i].name,16)){
+                    size_t tmp = ((name_file*)name_table)[i].size_b;
+                    ((name_file*)name_table)[i].size_b = fmax(size,tmp);
+                    if(write_blk(blocks*BLOCK_SIZE,name_table,BLOCK_SIZE)){
+                        err = READ_BLK_ERR;
+                        return err;
+                    }
+                    return ERR_OK;
+                }
+            i++;
+            if(i*sizeof(name_file) >= BLOCK_SIZE)
+                break;
+        }
+    }
+    err = BLK_EOF;
+    return err;
+}
 int new_file(const char *name){
     size_t b = strnlen(name,16);
     if(b==16){
@@ -303,9 +367,10 @@ int new_file(const char *name){
         while(1){
             size_t b = strnlen(((name_file*)name_table)[i].name,16); // check for dups
             if(!b){
-                name_file  tmp;
+                name_file tmp;
                 memcpy(tmp.name,name_padded,16);
                 tmp.index = add_block();
+                tmp.size_b = 0;
                 chk_err_e();
                 ((name_file*)name_table)[i] = tmp;
                 if(write_blk(blocks*BLOCK_SIZE,name_table,BLOCK_SIZE)){
@@ -315,7 +380,7 @@ int new_file(const char *name){
                 break;
             }
             i++;
-            if(i*sizeof(name_file) >= BLOCK_SIZE) 
+            if(i*sizeof(name_file) >= BLOCK_SIZE)
                 break;
         }
     }
@@ -378,7 +443,6 @@ size_t read_file(const char * file_name,void *buf,size_t count,size_t offset){
             return err;
         }
         int cpy_len = fmin(count, BLOCK_SIZE);
-        printf("%djj\n",offset);
         if(cpy_len+offset > BLOCK_SIZE)
             cpy_len -= offset;
         count -= cpy_len;
@@ -422,6 +486,8 @@ size_t write_file(const char * file_name,void *buf,size_t count,size_t offset){
         }
         offset = 0;
     }
+    new_file_size(file_name,count+offset);
+    chk_err_e();
     return ERR_OK;
 }
 void print_fat(){

@@ -21,11 +21,15 @@ int validate_FAT();
 int file_count();
 int get_file_index(name_file* ret,size_t index);
 /* name max len 16 */
+int get_file_size(const char * name);
+/* name max len 16 */
 int get_file_block(const char * name);
 /* name max len 16 */
 int new_file(const char * name);
 /* name max len 16 */
 int del_file(const char * name);
+/* name max len 16 */
+int get_file_size(const char * name);
 size_t read_file(const char * file_name,void *buf,size_t count,size_t offset);
 size_t write_file(const char * file_name,void *buf,size_t count,size_t offset);
 void print_fat();
