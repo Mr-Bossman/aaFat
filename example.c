@@ -29,6 +29,10 @@ int main(){
 
     print_file_table();
     print_fat();
+
+    new_file("3");
+    print_ERR();
+
     char data[] ="If successful, returns the smaller of two floating point values. The value returned is exact and does not depend on any rounding modes.";
     write_file("3",data,sizeof(data),8);
     print_ERR();
