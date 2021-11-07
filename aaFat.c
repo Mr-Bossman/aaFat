@@ -26,8 +26,7 @@ int write_blk(size_t offset, unsigned char *mem)
 
 #endif
 //ADD has init FAT
-// fix looping check // https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af
-//add more specific err
+// fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af
 //double check error checks
 static enum ERR err = ERR_OK;
 #define chk_err() \
@@ -474,8 +473,6 @@ int new_file(const char *name)
     }
     return ERR_OK;
 }
-
-// fnf
 int del_file(const char *name)
 {
     size_t b = strnlen(name, 16);
@@ -484,6 +481,7 @@ int del_file(const char *name)
         err = FS_BNAME;
         return err;
     }
+    enum ERR ret = FS_FNF;
     char name_padded[16] = {0};
     memcpy(name_padded, name, b);
     size_t blocks = 0;
@@ -503,6 +501,7 @@ int del_file(const char *name)
             if (b == strnlen(name, 16))
                 if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
                 {
+                    ret = ERR_OK;
                     del_block(((name_file *)name_table)[i].index);
                     chk_err_e();
                     name_file tmp;
@@ -521,9 +520,8 @@ int del_file(const char *name)
                 break;
         }
     }
-    return ERR_OK;
+    return ret;
 }
-//fnf
 size_t read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
@@ -561,7 +559,6 @@ size_t read_file(const char *file_name, void *buffer, size_t count, size_t offse
     }
     return ERR_OK;
 }
-//fnf
 size_t write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
