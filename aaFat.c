@@ -42,6 +42,7 @@ enum ERR FAT_ERRpop()
     err = ERR_OK;
     return tmp;
 }
+
 // table == oneblock
 int write_FAT()
 {
@@ -65,6 +66,7 @@ int write_FAT()
     }
     return ERR_OK;
 }
+
 int validate_FAT()
 {
     // one is the file name table
@@ -85,6 +87,7 @@ int validate_FAT()
     //check validity of fat and name file
     return ERR_OK;
 }
+
 // zero delims end on chain
 static size_t get_nextblock(size_t block_index)
 {
@@ -122,6 +125,7 @@ static int get_block_itter(size_t start, size_t i)
     err = BLK_EOF;
     return err;
 }
+
 static int get_block_len(size_t start)
 {
     size_t i = 0;
@@ -133,6 +137,7 @@ static int get_block_len(size_t start)
     }
     return i;
 }
+
 static size_t get_freeblock()
 {
     unsigned char fat[BLOCK_SIZE] = {0};
@@ -147,6 +152,7 @@ static size_t get_freeblock()
     err = BLK_NSP;
     return err; // -1 err cant have index more than table
 }
+
 static int extend_blocks(size_t index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
@@ -427,6 +433,7 @@ static int new_file_size(const char *name, size_t size)
     err = FS_FNF;
     return err;
 }
+
 int new_file(const char *name)
 {
     size_t b = strnlen(name, 16);
@@ -473,6 +480,7 @@ int new_file(const char *name)
     }
     return ERR_OK;
 }
+
 int del_file(const char *name)
 {
     size_t b = strnlen(name, 16);
@@ -522,6 +530,7 @@ int del_file(const char *name)
     }
     return ret;
 }
+
 size_t read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
@@ -559,6 +568,7 @@ size_t read_file(const char *file_name, void *buffer, size_t count, size_t offse
     }
     return ERR_OK;
 }
+
 size_t write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
@@ -605,6 +615,7 @@ size_t write_file(const char *file_name, void *buffer, size_t count, size_t offs
     chk_err_e();
     return ERR_OK;
 }
+
 void print_fat()
 {
     unsigned char fat[BLOCK_SIZE] = {0};

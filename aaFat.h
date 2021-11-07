@@ -42,7 +42,7 @@ typedef enum ERR {
     BLK_OOB = -3, // out of bounds
     BLK_NSP = -4, // no space left
     BLK_EOF = -5, // end of linked list
-    FS_LOOP = -6, //linked list reffers itself
+    FS_LOOP = -6, //linked list refers itself
     FS_FNF = -7, // file not found
     FS_BNAME = -8, // bad name
     FS_OOB = -9, // cant read more than f size
