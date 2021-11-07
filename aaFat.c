@@ -29,7 +29,6 @@ int write_blk(size_t offset, unsigned char *mem)
 // fix looping check // https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af
 //add more specific err
 //double check error checks
-// add get size
 static enum ERR err = ERR_OK;
 #define chk_err() \
     if (err)      \
@@ -76,8 +75,12 @@ int validate_FAT()
         err = READ_BLK_ERR;
         return err;
     }
-    //if(((size_t*)fat)[0] != 1)
-    //if(((size_t*)fat)[1] != 0)
+    if(((size_t*)fat)[0] != 1){
+        return -1;
+    }
+    if(((size_t*)fat)[1] != 0){
+        return -1;
+    }
     //check validity of fat and name file
     return ERR_OK;
 }
@@ -513,6 +516,12 @@ int del_file(const char *name)
 size_t read_file(const char *file_name, void *buf, size_t count, size_t offset)
 {
     int err = 0;
+    if (count + offset > get_file_size(file_name))
+    {
+        err = EOF;
+        return err;
+    }
+    chk_err_e();
     size_t blk = get_file_block(file_name);
     chk_err_e();
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
