@@ -39,7 +39,6 @@ int write_blk(size_t offset, unsigned char *mem)
 /* TODO: clear error on extern funcs / check*/
 /* TODO: fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af */
 /* TODO: double check error checks */
-/* TODO: fix int/size_t casts */
 
 /* Curent error number. */
 static ERR err = -ERR_OK;
@@ -86,15 +85,15 @@ int print_ERR()
 /* Returns error num. */
 int write_FAT()
 {
-    if (BLOCK_SIZE < TABLE_LEN * sizeof(size_t))
+    if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t))
     {
         err = FS_INVALID;
         return err;
     }
     unsigned char fat[BLOCK_SIZE];
     memset(fat, 0xFF, BLOCK_SIZE);
-    ((size_t *)fat)[0] = 1;
-    ((size_t *)fat)[1] = 0;
+    ((uint32_t *)fat)[0] = 1;
+    ((uint32_t *)fat)[1] = 0;
     if (write_blk(0, fat))
     {
         err = -WRITE_BLK_ERR;
@@ -119,11 +118,11 @@ int validate_FAT()
         err = -READ_BLK_ERR;
         return err;
     }
-    if (((size_t *)fat)[0] != 1)
+    if (((uint32_t *)fat)[0] != 1)
     {
         return -FS_INVALID;
     }
-    if (((size_t *)fat)[1] != 0)
+    if (((uint32_t *)fat)[1] != 0)
     {
         return -FS_INVALID;
     }
@@ -133,7 +132,7 @@ int validate_FAT()
 
 /* Gets Next block in linked list. */
 /* Returns error num or block. */
-static size_t get_nextblock(size_t block_index)
+static uint32_t get_nextblock(uint32_t block_index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
     if (block_index > TABLE_LEN)
@@ -146,8 +145,8 @@ static size_t get_nextblock(size_t block_index)
         err = -READ_BLK_ERR;
         return err;
     }
-    size_t tmp = ((size_t *)fat)[block_index];
-    if ((int)tmp < 0)
+    uint32_t tmp = ((uint32_t *)fat)[block_index];
+    if (tmp == UINT32_MAX)
     {
         err = -FS_INVALID;
         return err;
@@ -157,9 +156,9 @@ static size_t get_nextblock(size_t block_index)
 
 /* Get 'i'th block from start. */
 /* Returns error num or block. */
-static size_t get_block_itter(size_t start, size_t i)
+static uint32_t get_block_itter(uint32_t start, uint32_t i)
 {
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     while (((blocks = get_nextblock(blocks))))
     {
         chk_err_e();
@@ -173,10 +172,10 @@ static size_t get_block_itter(size_t start, size_t i)
 
 /* Get total block lenth of linked list staring at start. */
 /* Returns error num or number of blocks. */
-static size_t get_block_len(size_t start)
+static uint32_t get_block_len(uint32_t start)
 {
-    size_t i = 0;
-    size_t blocks = 0;
+    uint32_t i = 0;
+    uint32_t blocks = 0;
     while ((blocks = get_nextblock(blocks)))
     {
         chk_err_e();
@@ -187,7 +186,7 @@ static size_t get_block_len(size_t start)
 
 /* Gets next free block. */
 /* Returns error num or block. */
-static size_t get_freeblock()
+static uint32_t get_freeblock()
 {
     unsigned char fat[BLOCK_SIZE] = {0};
     if (read_blk(0, fat))
@@ -196,7 +195,7 @@ static size_t get_freeblock()
         return err;
     }
     for (size_t i = 0; i < TABLE_LEN; i++)
-        if (((size_t *)fat)[i] == -1)
+        if (((uint32_t *)fat)[i] == UINT32_MAX)
             return i;
     err = -BLK_NSP;
     return err;
@@ -205,7 +204,7 @@ static size_t get_freeblock()
 /* Adds free block to end of link list. */
 /* Returns error num. */
 /* TODO: return new block? */
-static int extend_blocks(size_t index)
+static uint32_t extend_blocks(uint32_t index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
     if (read_blk(0, fat))
@@ -214,12 +213,12 @@ static int extend_blocks(size_t index)
         return err;
     }
     int bb = 0;
-    size_t last;
+    uint32_t last;
     /* TODO: loop check */
     while (index)
     { // we can make loops inside struct
         last = index;
-        index = ((size_t *)fat)[index];
+        index = ((uint32_t *)fat)[index];
         bb++;
         if (bb > TABLE_LEN)
         {
@@ -227,10 +226,10 @@ static int extend_blocks(size_t index)
             return err; //crap err check
         }
     }
-    size_t tmp = get_freeblock();
+    uint32_t tmp = get_freeblock();
     chk_err_e();
-    ((size_t *)fat)[last] = tmp;
-    ((size_t *)fat)[tmp] = 0;
+    ((uint32_t *)fat)[last] = tmp;
+    ((uint32_t *)fat)[tmp] = 0;
     if (write_blk(0, fat))
     {
         err = -WRITE_BLK_ERR;
@@ -239,13 +238,16 @@ static int extend_blocks(size_t index)
 
     memset(fat, 0, BLOCK_SIZE);
     if (write_blk(tmp, fat))
+    {
         err = -WRITE_BLK_ERR;
-    return err;
+        return err;
+    }
+    return tmp;
 }
 
 /* Add new linked list to FAT. */
 /* Returns error num or block. */
-static size_t add_block()
+static uint32_t add_block()
 {
     unsigned char fat[BLOCK_SIZE] = {0};
     if (read_blk(0, fat))
@@ -253,9 +255,9 @@ static size_t add_block()
         err = -READ_BLK_ERR;
         return err;
     }
-    size_t tmp = get_freeblock();
+    uint32_t tmp = get_freeblock();
     chk_err_e();
-    ((size_t *)fat)[tmp] = 0;
+    ((uint32_t *)fat)[tmp] = 0;
     if (write_blk(0, fat))
     {
         err = -WRITE_BLK_ERR;
@@ -274,7 +276,7 @@ static size_t add_block()
 
 /* Deletes all blocks in linked list after index. */
 /* Returns error num. */
-static int del_block(size_t index)
+static int del_block(uint32_t index)
 {
     if (index == 0 || index > TABLE_LEN)
     {
@@ -288,13 +290,13 @@ static int del_block(size_t index)
         return err;
     }
     int errb = 0;
-    size_t last;
+    uint32_t last;
     /* TODO: loop check */
     while (index)
     { // we can make loops inside struct
         last = index;
-        index = ((size_t *)fat)[index];
-        ((size_t *)fat)[last] = -1;
+        index = ((uint32_t *)fat)[index];
+        ((uint32_t *)fat)[last] = -1;
         errb++;
         if (errb > TABLE_LEN)
         {
@@ -315,7 +317,7 @@ static int del_block(size_t index)
 size_t file_count()
 {
     size_t n = 0;
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -352,7 +354,7 @@ size_t file_count()
 /* Returns error num. */
 int get_file_index(name_file *ret, size_t index)
 {
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -383,7 +385,7 @@ int get_file_index(name_file *ret, size_t index)
 
 /* Gets first block of file. */
 /* Returns error num or block. */
-size_t get_file_block(const char *name)
+uint32_t get_file_block(const char *name)
 {
     size_t b = strnlen(name, 16);
     if (b == 16)
@@ -391,7 +393,7 @@ size_t get_file_block(const char *name)
         err = -FS_BNAME;
         return err;
     }
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -427,7 +429,7 @@ size_t get_file_size(const char *name)
         err = -FS_BNAME;
         return err;
     }
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -463,7 +465,7 @@ static int new_file_size(const char *name, size_t size)
         err = -FS_BNAME;
         return err;
     }
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -508,13 +510,13 @@ int new_file(const char *name)
         err = -FS_BNAME;
         return err;
     }
-    int tmp = get_file_block(name);
-    if (tmp > 0)
+    get_file_block(name);
+    if (err == -ERR_OK)
     {
         err = -FS_BNAME;
         return err;
     }
-    else if (tmp != -FS_FNF)
+    else if (err != -FS_FNF)
     {
         chk_err_e();
     }
@@ -522,7 +524,7 @@ int new_file(const char *name)
         err = -ERR_OK;
     char name_padded[16] = {0};
     memcpy(name_padded, name, b);
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -572,7 +574,7 @@ int del_file(const char *name)
     ERR ret = -FS_FNF;
     char name_padded[16] = {0};
     memcpy(name_padded, name, b);
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -622,7 +624,7 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
         return err;
     }
     chk_err_e();
-    size_t blk = get_file_block(file_name);
+    uint32_t blk = get_file_block(file_name);
     chk_err_e();
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
     while ((blk = get_nextblock(blk)))
@@ -638,7 +640,7 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
             err = -READ_BLK_ERR;
             return err;
         }
-        int cpy_len = fmin(count, BLOCK_SIZE);
+        size_t cpy_len = fmin(count, BLOCK_SIZE);
         if (cpy_len + offset > BLOCK_SIZE)
             cpy_len -= offset;
         count -= cpy_len;
@@ -656,13 +658,13 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
-    size_t blk = get_file_block(file_name);
+    uint32_t blk = get_file_block(file_name);
     chk_err_e();
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
     size_t sz = offset + count;
     while (offset + count)
     {
-        size_t tmp;
+        uint32_t tmp;
         do
         {
             tmp = get_nextblock(blk);
@@ -682,7 +684,7 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
             err = -READ_BLK_ERR;
             return err;
         }
-        int cpy_len = fmin(count, BLOCK_SIZE);
+        size_t cpy_len = fmin(count, BLOCK_SIZE);
         if (cpy_len + offset > BLOCK_SIZE)
             cpy_len -= offset;
         count -= cpy_len;
@@ -706,9 +708,9 @@ void print_fat()
     puts("FAT, linked list:");
     unsigned char fat[BLOCK_SIZE] = {0};
     read_blk(0, fat);
-    printf("%3ld", ((size_t *)fat)[0]);
+    printf("%3d", ((uint32_t *)fat)[0]);
     for (size_t i = 1; i < TABLE_LEN; i++)
-        printf(",%3ld", ((size_t *)fat)[i]);
+        printf(",%3d", ((uint32_t *)fat)[i]);
     puts("");
     printf("  0");
     for (size_t i = 1; i < TABLE_LEN; i++)
@@ -719,7 +721,7 @@ void print_fat()
 /* No error checking. */
 void print_file_table()
 {
-    size_t blocks = 0;
+    uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
     {
@@ -736,11 +738,11 @@ void print_file_table()
                     break;
                 continue;
             }
-            printf("%s, BLKS: %ld", ((name_file *)name_table)[i].name, ((name_file *)name_table)[i].index);
+            printf("%s, BLKS: %u", ((name_file *)name_table)[i].name, ((name_file *)name_table)[i].index);
             {
-                size_t blk = ((name_file *)name_table)[i].index;
+                uint32_t blk = ((name_file *)name_table)[i].index;
                 while ((blk = get_nextblock(blk)))
-                    printf(",%ld", blk);
+                    printf(",%u", blk);
                 puts("");
             }
             i++;
