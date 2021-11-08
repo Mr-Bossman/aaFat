@@ -36,7 +36,7 @@ int write_blk(size_t offset, unsigned char *mem)
 #include <unistd.h>
 #endif
 
-/* TODO: clear error on extern funcs / check*/
+/* TODO: Fix integity check */
 /* TODO: fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af */
 /* TODO: double check error checks */
 
@@ -216,7 +216,6 @@ static uint32_t get_freeblock()
 
 /* Adds free block to end of link list. */
 /* Returns error num. */
-/* TODO: return new block? */
 static uint32_t extend_blocks(uint32_t index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
