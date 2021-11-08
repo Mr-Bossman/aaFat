@@ -41,6 +41,7 @@ int write_blk(size_t offset, unsigned char *mem)
 /* TODO: double check error checks */
 /* TODO: fix int/size_t casts */
 
+/* Curent error number. */
 static ERR err = -ERR_OK;
 
 #define chk_err() \
@@ -50,6 +51,7 @@ static ERR err = -ERR_OK;
     if (err)        \
         return err;
 
+/* Clears and returns current error number. */
 ERR FAT_ERRpop()
 {
     ERR tmp = err;
@@ -57,11 +59,13 @@ ERR FAT_ERRpop()
     return tmp;
 }
 
+/* Names of ERR numbers. */
 static char *ERR_NAME[] =
     {ENUMS(ERR_OK), ENUMS(READ_BLK_ERR), ENUMS(WRITE_BLK_ERR), ENUMS(BLK_OOB),
      ENUMS(BLK_NSP), ENUMS(BLK_EOF), ENUMS(FS_LOOP), ENUMS(FS_FNF), ENUMS(FS_BNAME),
      ENUMS(FS_OOB), ENUMS(FS_INVALID)};
 
+/* Prints current error number and name. */
 int print_ERR()
 {
     ERR tmp = FAT_ERRpop();
@@ -78,6 +82,8 @@ int print_ERR()
     return ret;
 }
 
+/* Writes FAT to block, over writes. */ 
+/* Returns error num. */
 int write_FAT()
 {
     if (BLOCK_SIZE < TABLE_LEN * sizeof(size_t))
@@ -103,6 +109,8 @@ int write_FAT()
     return ERR_OK;
 }
 
+/* Returns the integrity of file system. */
+/* Returns error num. */
 int validate_FAT()
 {
     unsigned char fat[BLOCK_SIZE];
@@ -123,6 +131,8 @@ int validate_FAT()
     return ERR_OK;
 }
 
+/* Gets Next block in linked list. */
+/* Returns error num or block. */
 static size_t get_nextblock(size_t block_index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
@@ -145,7 +155,9 @@ static size_t get_nextblock(size_t block_index)
     return tmp;
 }
 
-static int get_block_itter(size_t start, size_t i)
+/* Get 'i'th block from start. */
+/* Returns error num or block. */
+static size_t get_block_itter(size_t start, size_t i)
 {
     size_t blocks = 0;
     while (((blocks = get_nextblock(blocks))))
@@ -159,7 +171,9 @@ static int get_block_itter(size_t start, size_t i)
     return err;
 }
 
-static int get_block_len(size_t start)
+/* Get total block lenth of linked list staring at start. */
+/* Returns error num or number of blocks. */
+static size_t get_block_len(size_t start)
 {
     size_t i = 0;
     size_t blocks = 0;
@@ -171,6 +185,8 @@ static int get_block_len(size_t start)
     return i;
 }
 
+/* Gets next free block. */
+/* Returns error num or block. */
 static size_t get_freeblock()
 {
     unsigned char fat[BLOCK_SIZE] = {0};
@@ -186,6 +202,9 @@ static size_t get_freeblock()
     return err;
 }
 
+/* Adds free block to end of link list. */
+/* Returns error num. */
+/* TODO: return new block? */
 static int extend_blocks(size_t index)
 {
     unsigned char fat[BLOCK_SIZE] = {0};
@@ -224,6 +243,8 @@ static int extend_blocks(size_t index)
     return err;
 }
 
+/* Add new linked list to FAT. */
+/* Returns error num or block. */
 static size_t add_block()
 {
     unsigned char fat[BLOCK_SIZE] = {0};
@@ -251,6 +272,8 @@ static size_t add_block()
     return tmp;
 }
 
+/* Deletes all blocks in linked list after index. */
+/* Returns error num. */
 static int del_block(size_t index)
 {
     if (index == 0 || index > TABLE_LEN)
@@ -287,7 +310,9 @@ static int del_block(size_t index)
     return ERR_OK;
 }
 
-int file_count()
+/* Gets the total number of files. */
+/* Returns error num or number of files. */
+size_t file_count()
 {
     size_t n = 0;
     size_t blocks = 0;
@@ -323,6 +348,8 @@ int file_count()
     return n;
 }
 
+/* Gets the file struct at index. */
+/* Returns error num. */
 int get_file_index(name_file *ret, size_t index)
 {
     size_t blocks = 0;
@@ -354,7 +381,9 @@ int get_file_index(name_file *ret, size_t index)
     return err;
 }
 
-int get_file_block(const char *name)
+/* Gets first block of file. */
+/* Returns error num or block. */
+size_t get_file_block(const char *name)
 {
     size_t b = strnlen(name, 16);
     if (b == 16)
@@ -388,7 +417,9 @@ int get_file_block(const char *name)
     return err;
 }
 
-int get_file_size(const char *name)
+/* Gets file size. */
+/* Returns error num or size of file. */
+size_t get_file_size(const char *name)
 {
     size_t b = strnlen(name, 16);
     if (b == 16)
@@ -422,6 +453,8 @@ int get_file_size(const char *name)
     return err;
 }
 
+/* Updates size to curuent or larger. */
+/* Returns error num. */
 static int new_file_size(const char *name, size_t size)
 {
     size_t b = strnlen(name, 16);
@@ -465,6 +498,8 @@ static int new_file_size(const char *name, size_t size)
     return err;
 }
 
+/* Adds new file. */
+/* Returns error num. */
 int new_file(const char *name)
 {
     size_t b = strnlen(name, 16);
@@ -524,6 +559,8 @@ int new_file(const char *name)
     return ERR_OK;
 }
 
+/* Deletes file. */
+/* Returns error num. */
 int del_file(const char *name)
 {
     size_t b = strnlen(name, 16);
@@ -574,7 +611,9 @@ int del_file(const char *name)
     return ret;
 }
 
-size_t read_file(const char *file_name, void *buffer, size_t count, size_t offset)
+/* Reads from file. */
+/* Returns error num. */
+int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
     if (count + offset > get_file_size(file_name))
@@ -612,7 +651,9 @@ size_t read_file(const char *file_name, void *buffer, size_t count, size_t offse
     return ERR_OK;
 }
 
-size_t write_file(const char *file_name, void *buffer, size_t count, size_t offset)
+/* Write to file. */
+/* Returns error num*/
+int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
     char *buf = buffer;
     size_t blk = get_file_block(file_name);
@@ -659,6 +700,7 @@ size_t write_file(const char *file_name, void *buffer, size_t count, size_t offs
     return ERR_OK;
 }
 
+/* No error checking. */
 void print_fat()
 {
     puts("FAT, linked list:");
@@ -674,6 +716,7 @@ void print_fat()
     puts("");
 }
 
+/* No error checking. */
 void print_file_table()
 {
     size_t blocks = 0;
