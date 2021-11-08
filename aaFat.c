@@ -37,7 +37,6 @@ int write_blk(size_t offset, unsigned char *mem)
 #endif
 
 /* TODO: Fix integity check */
-/* TODO: fix looping check https://dev.to/alisabaj/floyd-s-tortoise-and-hare-algorithm-finding-a-cycle-in-a-linked-list-39af */
 /* TODO: double check error checks */
 
 /* Curent error number. */
@@ -49,10 +48,11 @@ static ERR err = -ERR_OK;
 #define chk_err_e() \
     if (err)        \
         return err;
-#define fatal_check()      \
-    if(err)                \
-        if(validate_FAT()) \
+#define fatal_check()       \
+    if (err)                \
+        if (validate_FAT()) \
             return err;
+
 /* Clears and returns current error number. */
 ERR FAT_ERRpop()
 {
@@ -92,9 +92,9 @@ static uint32_t extend_blocks(uint32_t index);
 static uint32_t add_block();
 static int del_block(uint32_t index);
 static int new_file_size(const char *name, size_t size);
+static int check_block_loop(uint32_t index);
 
-
-/* Writes FAT to block, over writes. */ 
+/* Writes FAT to block, over writes. */
 /* Returns error num. */
 int write_FAT()
 {
@@ -125,6 +125,7 @@ int write_FAT()
 /* Returns error num. */
 int validate_FAT()
 {
+    err = ERR_OK;
     unsigned char fat[BLOCK_SIZE];
     if (read_blk(0, fat))
     {
@@ -139,7 +140,22 @@ int validate_FAT()
     {
         return -FS_INVALID;
     }
-    /* TODO: check validity of fat and name file */
+    //check file table first
+    size_t b = file_count();
+    chk_err_e();
+    name_file file;
+    while (b--)
+    {
+            get_file_index(&file,b);
+            chk_err_e();
+            if (strnlen(file.name, 16) == 16)
+            {
+                err = -FS_BNAME;
+                return err;
+            }
+            check_block_loop(file.index);
+            chk_err_e();
+    }
     return ERR_OK;
 }
 
@@ -197,6 +213,36 @@ static uint32_t get_block_len(uint32_t start)
     return i;
 }
 
+/* Checks for loops in file system linked list. */
+/* Returns error num. */
+static int check_block_loop(uint32_t index)
+{
+    unsigned char fat[BLOCK_SIZE] = {0};
+    if (read_blk(0, fat))
+    {
+        err = -READ_BLK_ERR;
+        return err;
+    }
+    if (index <= 1)
+    {
+        err = -BLK_OOB;
+        return err;
+    }
+    uint32_t tortoise = index;
+    uint32_t hare = ((uint32_t *)fat)[index];
+    while (hare && ((uint32_t *)fat)[hare])
+    {
+        if (tortoise == hare)
+        {
+            err = -FS_LOOP;
+            return err;
+        }
+        tortoise = ((uint32_t *)fat)[tortoise];
+        hare = ((uint32_t *)fat)[((uint32_t *)fat)[hare]];
+    }
+    return ERR_OK;
+}
+
 /* Gets next free block. */
 /* Returns error num or block. */
 static uint32_t get_freeblock()
@@ -224,19 +270,13 @@ static uint32_t extend_blocks(uint32_t index)
         err = -READ_BLK_ERR;
         return err;
     }
-    int bb = 0;
+    check_block_loop(index);
+    chk_err_e();
     uint32_t last;
-    /* TODO: loop check */
     while (index)
-    { // we can make loops inside struct
+    {
         last = index;
         index = ((uint32_t *)fat)[index];
-        bb++;
-        if (bb > TABLE_LEN)
-        {
-            err = -FS_LOOP;
-            return err; //crap err check
-        }
     }
     uint32_t tmp = get_freeblock();
     chk_err_e();
@@ -301,20 +341,14 @@ static int del_block(uint32_t index)
         err = -READ_BLK_ERR;
         return err;
     }
-    int errb = 0;
+    check_block_loop(index);
+    chk_err_e();
     uint32_t last;
-    /* TODO: loop check */
     while (index)
-    { // we can make loops inside struct
+    {
         last = index;
         index = ((uint32_t *)fat)[index];
         ((uint32_t *)fat)[last] = -1;
-        errb++;
-        if (errb > TABLE_LEN)
-        {
-            err = -FS_LOOP;
-            return err; //crap err check
-        }
     }
     if (write_blk(0, fat))
     {
@@ -348,17 +382,12 @@ size_t file_count()
             if (((name_file *)name_table)[i].index == 0)
                 break;
             if (((name_file *)name_table)[i].index == 1)
-            {
-                i++;
-                if (i * sizeof(name_file) >= BLOCK_SIZE)
-                    break;
-                continue;
-            }
+                n--;
             i++;
             if (i * sizeof(name_file) >= BLOCK_SIZE)
                 break;
         }
-        n += i - 1;
+        n += i;
     }
     return n;
 }
