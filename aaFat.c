@@ -81,6 +81,16 @@ int print_ERR()
     return ret;
 }
 
+static uint32_t get_nextblock(uint32_t block_index);
+static uint32_t get_block_itter(uint32_t start, uint32_t i);
+static uint32_t get_block_len(uint32_t start);
+static uint32_t get_freeblock();
+static uint32_t extend_blocks(uint32_t index);
+static uint32_t add_block();
+static int del_block(uint32_t index);
+static int new_file_size(const char *name, size_t size);
+
+
 /* Writes FAT to block, over writes. */ 
 /* Returns error num. */
 int write_FAT()
