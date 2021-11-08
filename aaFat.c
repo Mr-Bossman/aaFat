@@ -49,7 +49,10 @@ static ERR err = -ERR_OK;
 #define chk_err_e() \
     if (err)        \
         return err;
-
+#define fatal_check()      \
+    if(err)                \
+        if(validate_FAT()) \
+            return err;
 /* Clears and returns current error number. */
 ERR FAT_ERRpop()
 {
@@ -326,6 +329,7 @@ static int del_block(uint32_t index)
 /* Returns error num or number of files. */
 size_t file_count()
 {
+    fatal_check();
     size_t n = 0;
     uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
@@ -364,6 +368,7 @@ size_t file_count()
 /* Returns error num. */
 int get_file_index(name_file *ret, size_t index)
 {
+    fatal_check();
     uint32_t blocks = 0;
     unsigned char name_table[BLOCK_SIZE] = {0};
     while ((blocks = get_nextblock(blocks)))
@@ -397,6 +402,7 @@ int get_file_index(name_file *ret, size_t index)
 /* Returns error num or block. */
 uint32_t get_file_block(const char *name)
 {
+    fatal_check();
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
@@ -433,6 +439,7 @@ uint32_t get_file_block(const char *name)
 /* Returns error num or size of file. */
 size_t get_file_size(const char *name)
 {
+    fatal_check();
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
@@ -514,6 +521,7 @@ static int new_file_size(const char *name, size_t size)
 /* Returns error num. */
 int new_file(const char *name)
 {
+    fatal_check();
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
@@ -575,6 +583,7 @@ int new_file(const char *name)
 /* Returns error num. */
 int del_file(const char *name)
 {
+    fatal_check();
     size_t b = strnlen(name, 16);
     if (b == 16)
     {
@@ -627,6 +636,7 @@ int del_file(const char *name)
 /* Returns error num. */
 int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
+    fatal_check();
     char *buf = buffer;
     if (count + offset > get_file_size(file_name))
     {
@@ -667,6 +677,7 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 /* Returns error num*/
 int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 {
+    fatal_check();
     char *buf = buffer;
     uint32_t blk = get_file_block(file_name);
     chk_err_e();
