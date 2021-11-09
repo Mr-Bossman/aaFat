@@ -27,7 +27,7 @@ int main(){
     new_file("00");
 
     print_file_table();
-    printf("%lu\n",file_count());
-    validate_FAT();
+    file_count();
+    printf("%u\n",validate_FAT());
     return 0;
 }

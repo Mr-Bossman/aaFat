@@ -36,7 +36,6 @@ int write_blk(size_t offset, unsigned char *mem)
 #include <unistd.h>
 #endif
 
-/* TODO: Fix integity check */
 /* TODO: double check error checks */
 
 /* Curent error number. */
@@ -140,7 +139,8 @@ int validate_FAT()
     {
         return -FS_INVALID;
     }
-    //check file table first
+    check_block_loop(1);
+    chk_err_e();
     size_t b = file_count();
     chk_err_e();
     name_file file;
@@ -223,7 +223,7 @@ static int check_block_loop(uint32_t index)
         err = -READ_BLK_ERR;
         return err;
     }
-    if (index <= 1)
+    if (!index)
     {
         err = -BLK_OOB;
         return err;
