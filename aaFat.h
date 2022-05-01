@@ -18,9 +18,15 @@ int validate_FAT();
 size_t file_count();
 int get_file_index(name_file* ret,size_t index);
 /* name max len 16 */
+uint32_t get_index_file(const char *name);
+/* name max len 16 */
 size_t get_file_size(const char * name);
 /* name max len 16 */
+int set_file_size(const char * name,size_t size);
+/* name max len 16 */
 uint32_t get_file_block(const char * name);
+/* name max len 16 */
+int get_file_exists(const char *name);
 /* name max len 16 */
 int new_file(const char * name);
 /* name max len 16 */
