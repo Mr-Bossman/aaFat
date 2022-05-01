@@ -6,14 +6,14 @@
 
 //#define BACKTRACE_ERR
 #define BT_SZ 100
-#define TABLE_LEN 100
+#define TABLE_LEN 128
 #define BLOCK_SIZE 512
 
-unsigned char store[BLOCK_SIZE * TABLE_LEN] = {0};
+unsigned char *store;
 
 int read_blk(size_t offset, unsigned char *mem)
 {
-    if ((offset * BLOCK_SIZE) >= sizeof(store))
+    if ((offset * BLOCK_SIZE) >= TABLE_LEN*BLOCK_SIZE)
         return -1;
     memcpy(mem, store + (offset * BLOCK_SIZE), BLOCK_SIZE);
     return ERR_OK;
@@ -21,7 +21,7 @@ int read_blk(size_t offset, unsigned char *mem)
 
 int write_blk(size_t offset, unsigned char *mem)
 {
-    if ((offset * BLOCK_SIZE) >= sizeof(store))
+    if ((offset * BLOCK_SIZE) >= TABLE_LEN*BLOCK_SIZE)
         return -1;
     memcpy(store + (offset * BLOCK_SIZE), mem, BLOCK_SIZE);
     return ERR_OK;
@@ -98,8 +98,15 @@ static int end_block(uint32_t index);
 /* Returns error num. */
 int write_FAT()
 {
+    store = malloc(BLOCK_SIZE*TABLE_LEN);
+    if(!store)
+    {
+        printf("Can't alloc.");
+
+    }
     if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t))
     {
+        printf("Invalid conf");
         err = FS_INVALID;
         return err;
     }

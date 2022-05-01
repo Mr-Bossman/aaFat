@@ -125,7 +125,10 @@ int main(int argc, char *argv[])
 	write_FAT();
 	int ret = FAT_ERRpop();
 	if (ret)
+	{
+		printf("Exit with %d.",ret);
 		return ret;
+	}
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 	ret = fuse_main(args.argc, args.argv, &aafat_oper, NULL);
 	fuse_opt_free_args(&args);
