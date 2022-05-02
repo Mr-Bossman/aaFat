@@ -1,7 +1,6 @@
 
 #include "aaFat.h"
 
-#define EXAMPLE_
 #ifdef EXAMPLE_
 
 //#define BACKTRACE_ERR
@@ -60,6 +59,9 @@ static ERR err = -ERR_OK;
 
 #define min(a,b) (((a)>(b))?(b):(a))
 
+int read_blk(size_t offset, unsigned char *mem);
+int write_blk(size_t offset, unsigned char *mem);
+
 /* Clears and returns current error number. */
 ERR FAT_ERRpop()
 {
@@ -106,15 +108,17 @@ static int end_block(uint32_t index);
 /* Returns error num. */
 int write_FAT()
 {
+#ifdef EXAMPLE_
 	store = malloc(BLOCK_SIZE*TABLE_LEN);
 	if(!store)
 	{
-		printf("Can't alloc.");
+		printf("Can't alloc.\n");
 
 	}
+#endif
 	if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t))
 	{
-		printf("Invalid conf");
+		printf("Invalid conf.\n");
 		err = FS_INVALID;
 		return err;
 	}

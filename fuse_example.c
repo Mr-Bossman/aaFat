@@ -120,17 +120,35 @@ static const struct fuse_operations aafat_oper = {
 	.unlink		= aafat_unlink,
 };
 
+FILE *fp;
 int main(int argc, char *argv[])
 {
+	fp = fopen("fs.dat","wb+");
+	if (!fp){
+		printf("Cant open fs.dat\n");
+		return 1;
+	}
 	write_FAT();
 	int ret = FAT_ERRpop();
 	if (ret)
 	{
-		printf("Exit with %d.",ret);
+		printf("Exit with %d.\n",ret);
 		return ret;
 	}
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 	ret = fuse_main(args.argc, args.argv, &aafat_oper, NULL);
 	fuse_opt_free_args(&args);
 	return ret;
+}
+
+int write_blk(size_t offset, unsigned char *mem){
+	fseek(fp, offset*BLOCK_SIZE, SEEK_SET);
+	fwrite(mem, 1, BLOCK_SIZE, fp);
+	return 0;
+}
+
+int read_blk(size_t offset, unsigned char *mem){
+	fseek(fp, offset*BLOCK_SIZE, SEEK_SET);
+	fread(mem, 1, BLOCK_SIZE, fp);
+	return 0;
 }
