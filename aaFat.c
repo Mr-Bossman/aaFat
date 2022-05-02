@@ -154,11 +154,13 @@ int validate_FAT()
 	}
 	if (((uint32_t *)fat)[0] != 1)
 	{
-		return -FS_INVALID;
+		err = -FS_INVALID;
+		return err;
 	}
 	if (((uint32_t *)fat)[1] != 0)
 	{
-		return -FS_INVALID;
+		err = -FS_INVALID;
+		return err;
 	}
 	check_block_loop(1);
 	chk_err_e();
