@@ -40,24 +40,27 @@ int write_blk(size_t offset, unsigned char *mem)
 /* Curent error number. */
 static ERR err = -ERR_OK;
 
-#define chk_err() \
-	do { \
-		if (err) \
+#define chk_err()   \
+	do              \
+	{               \
+		if (err)    \
 			return; \
-	} while(0)
-#define chk_err_e() \
-	do { \
-		if (err)		\
+	} while (0)
+#define chk_err_e()     \
+	do                  \
+	{                   \
+		if (err)        \
 			return err; \
-	} while(0)
-#define fatal_check() \
-	do { \
-		if (err) \
+	} while (0)
+#define fatal_check()           \
+	do                          \
+	{                           \
+		if (err)                \
 			if (validate_FAT()) \
-				return err; \
-	} while(0)
+				return err;     \
+	} while (0)
 
-#define min(a,b) (((a)>(b))?(b):(a))
+#define min(a, b) (((a) > (b)) ? (b) : (a))
 
 int read_blk(size_t offset, unsigned char *mem);
 int write_blk(size_t offset, unsigned char *mem);
@@ -109,11 +112,10 @@ static int end_block(uint32_t index);
 int write_FAT()
 {
 #ifdef EXAMPLE_
-	store = malloc(BLOCK_SIZE*TABLE_LEN);
-	if(!store)
+	store = malloc(BLOCK_SIZE * TABLE_LEN);
+	if (!store)
 	{
 		printf("Can't alloc.\n");
-
 	}
 #endif
 	if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t))
@@ -167,15 +169,15 @@ int validate_FAT()
 	name_file file;
 	while (b--)
 	{
-			get_file_index(&file,b);
-			chk_err_e();
-			if (strnlen(file.name, 16) == 16)
-			{
-				err = -FS_BNAME;
-				return err;
-			}
-			check_block_loop(file.index);
-			chk_err_e();
+		get_file_index(&file, b);
+		chk_err_e();
+		if (strnlen(file.name, 16) == 16)
+		{
+			err = -FS_BNAME;
+			return err;
+		}
+		check_block_loop(file.index);
+		chk_err_e();
 	}
 	return ERR_OK;
 }
@@ -320,7 +322,6 @@ static uint32_t extend_blocks(uint32_t index)
 	return tmp;
 }
 
-
 /* Ends a block after deleting. */
 /* Returns error num. */
 static int end_block(uint32_t index)
@@ -456,7 +457,7 @@ int get_file_index(name_file *ret, size_t index)
 		{
 			if (((name_file *)name_table)[i].index == 1)
 				index++;
-			if (i+n == index)
+			if (i + n == index)
 			{
 				*ret = ((name_file *)name_table)[i];
 				return ERR_OK;
@@ -499,7 +500,7 @@ uint32_t get_index_file(const char *name)
 			size_t b = strnlen(((name_file *)name_table)[i].name, 16);
 			if (b == strnlen(name, 16))
 				if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
-					return n+i;
+					return n + i;
 			i++;
 			if (i * sizeof(name_file) >= BLOCK_SIZE)
 				break;
@@ -665,15 +666,17 @@ static int new_file_size(const char *name, size_t size)
 	return err;
 }
 
-int set_file_size(const char * name,size_t size){
+int set_file_size(const char *name, size_t size)
+{
 	fatal_check();
 	uint32_t blk = get_file_block(name);
 	chk_err_e();
-	size_t block_num = (size/BLOCK_SIZE);
+	size_t block_num = (size / BLOCK_SIZE);
 	uint32_t total = get_block_len(blk);
 	chk_err_e();
-	if(block_num < total && block_num) {
-		uint32_t last = get_block_itter(blk,block_num);
+	if (block_num < total && block_num)
+	{
+		uint32_t last = get_block_itter(blk, block_num);
 		chk_err_e();
 		uint32_t del = get_nextblock(last);
 		chk_err_e();
@@ -681,12 +684,15 @@ int set_file_size(const char * name,size_t size){
 		chk_err_e();
 		end_block(last);
 		chk_err_e();
-	} else if( block_num > total) {
-		uint32_t last = get_block_itter(blk,total);
+	}
+	else if (block_num > total)
+	{
+		uint32_t last = get_block_itter(blk, total);
 		chk_err_e();
-		for(uint32_t i =total; i < block_num;i++){
-				extend_blocks(last);
-				chk_err_e();
+		for (uint32_t i = total; i < block_num; i++)
+		{
+			extend_blocks(last);
+			chk_err_e();
 		}
 	}
 	total = get_block_len(blk);
@@ -889,9 +895,9 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 			return err;
 		}
 		offset = 0;
-		if(!count)
+		if (!count)
 			break;
-		end:
+	end:
 		do
 		{
 			tmp = get_nextblock(blk);
