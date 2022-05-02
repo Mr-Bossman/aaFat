@@ -837,6 +837,7 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 		if (offset >= BLOCK_SIZE)
 		{
 			offset -= BLOCK_SIZE;
+			blk = get_nextblock(blk);
 			continue;
 		}
 		if (read_blk(blk, BLOCKS))

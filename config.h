@@ -5,8 +5,8 @@
 
 //#define BACKTRACE_ERR
 //#define BT_SZ 100
-#define TABLE_LEN 50
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 0x8000
+#define TABLE_LEN (BLOCK_SIZE/4)
 #else
 #ifndef EXAMPLE_
 #define EXAMPLE_
