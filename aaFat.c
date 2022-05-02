@@ -6,14 +6,14 @@
 
 //#define BACKTRACE_ERR
 #define BT_SZ 100
-#define TABLE_LEN 128
-#define BLOCK_SIZE 512
+#define TABLE_LEN 50
+#define BLOCK_SIZE 1024
 
 unsigned char *store;
 
 int read_blk(size_t offset, unsigned char *mem)
 {
-    if ((offset * BLOCK_SIZE) >= TABLE_LEN*BLOCK_SIZE)
+    if (offset >= TABLE_LEN)
         return -1;
     memcpy(mem, store + (offset * BLOCK_SIZE), BLOCK_SIZE);
     return ERR_OK;
@@ -21,7 +21,7 @@ int read_blk(size_t offset, unsigned char *mem)
 
 int write_blk(size_t offset, unsigned char *mem)
 {
-    if ((offset * BLOCK_SIZE) >= TABLE_LEN*BLOCK_SIZE)
+    if (offset >= TABLE_LEN)
         return -1;
     memcpy(store + (offset * BLOCK_SIZE), mem, BLOCK_SIZE);
     return ERR_OK;
@@ -42,15 +42,23 @@ int write_blk(size_t offset, unsigned char *mem)
 static ERR err = -ERR_OK;
 
 #define chk_err() \
-    if (err)      \
-        return;
+    do { \
+        if (err) \
+            return; \
+    } while(0)
 #define chk_err_e() \
-    if (err)        \
-        return err;
-#define fatal_check()       \
-    if (err)                \
-        if (validate_FAT()) \
-            return err;
+    do { \
+        if (err)        \
+            return err; \
+    } while(0)
+#define fatal_check() \
+    do { \
+        if (err) \
+            if (validate_FAT()) \
+                return err; \
+    } while(0)
+
+#define min(a,b) (((a)>(b))?(b):(a))
 
 /* Clears and returns current error number. */
 ERR FAT_ERRpop()
@@ -125,7 +133,8 @@ int write_FAT()
         err = -WRITE_BLK_ERR;
         return err;
     }
-    return ERR_OK;
+    err = ERR_OK;
+    return err;
 }
 
 /* Returns the integrity of file system. */
@@ -326,6 +335,7 @@ static int end_block(uint32_t index)
     }
     return ERR_OK;
 }
+
 /* Add new linked list to FAT. */
 /* Returns error num or block. */
 static uint32_t add_block()
@@ -828,9 +838,8 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
             err = -READ_BLK_ERR;
             return err;
         }
-        size_t cpy_len = fmin(count, BLOCK_SIZE);
-        if (cpy_len + offset > BLOCK_SIZE)
-            cpy_len -= offset;
+        size_t cpy_len = min(count + offset, BLOCK_SIZE);
+        cpy_len -= offset;
         count -= cpy_len;
         memcpy(buf, BLOCKS + offset, cpy_len);
         buf += cpy_len;
@@ -852,10 +861,10 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
     chk_err_e();
     unsigned char BLOCKS[BLOCK_SIZE] = {0};
     size_t sz = offset + count;
-    while (offset + count)
+    while (1)
     {
         uint32_t tmp;
-        if (offset > BLOCK_SIZE)
+        if (offset >= BLOCK_SIZE)
         {
             offset -= BLOCK_SIZE;
             goto end;
@@ -865,9 +874,8 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
             err = -READ_BLK_ERR;
             return err;
         }
-        size_t cpy_len = fmin(count, BLOCK_SIZE);
-        if (cpy_len + offset > BLOCK_SIZE)
-            cpy_len -= offset;
+        size_t cpy_len = min(count + offset, BLOCK_SIZE);
+        cpy_len -= offset;
         count -= cpy_len;
         memcpy(BLOCKS + offset, buf, cpy_len);
         buf += cpy_len;
@@ -877,6 +885,8 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
             return err;
         }
         offset = 0;
+        if(!count)
+            break;
         end:
         do
         {
