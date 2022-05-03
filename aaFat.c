@@ -254,9 +254,9 @@ static int check_block_loop(uint32_t index)
 		err = -BLK_OOB;
 		return err;
 	}
-	/*uint32_t tortoise = index;
+	uint32_t tortoise = index;
 	uint32_t hare = ((uint32_t *)fat)[index];
-	while (hare && ((uint32_t *)fat)[hare])
+	while (hare && hare != UINT32_MAX && ((uint32_t *)fat)[hare] && ((uint32_t *)fat)[hare] != UINT32_MAX)
 	{
 		if (tortoise == hare)
 		{
@@ -264,8 +264,31 @@ static int check_block_loop(uint32_t index)
 			return err;
 		}
 		tortoise = ((uint32_t *)fat)[tortoise];
-		hare = ((uint32_t *)fat)[((uint32_t *)fat)[hare]];
-	}*/
+		if(tortoise >= TABLE_LEN)
+		{
+			err = -FS_INVALID;
+			return err;
+		}
+		if(tortoise == UINT32_MAX)
+			tortoise = 0;
+		uint32_t tmp = ((uint32_t *)fat)[hare];
+		if(tmp >= TABLE_LEN)
+		{
+			err = -FS_INVALID;
+			return err;
+		}
+		if(tmp == UINT32_MAX)
+			hare = 0;
+		else
+			hare = ((uint32_t *)fat)[tmp];
+		if(hare >= TABLE_LEN)
+		{
+			err = -FS_INVALID;
+			return err;
+		}
+		if(hare == UINT32_MAX)
+			hare = 0;
+	}
 	return ERR_OK;
 }
 
