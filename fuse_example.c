@@ -76,14 +76,20 @@ static int aafat_read(const char *name, char *buf, size_t size, off_t offset,str
 	(void) fi;
 	size_t sz = get_file_size(name+1);
 	if(read_file(name+1,buf,min(sz-offset,size),offset) != 0)
+	{
+		print_ERR();
 		return -1;
+	}
 	return min(sz-offset,size);
 }
 
 static int aafat_write(const char *name,const char *data, size_t size, off_t off, struct fuse_file_info *fi)
 {	(void) fi;
 	if(write_file(name+1,(void*)data,size,off) != 0)
+	{
+		print_ERR();
 		return -1;
+	}
 	return size;
 }
 
@@ -105,15 +111,26 @@ static int aafat_unlink(const char *name)
 
 static int aafat_open(const char *name, struct fuse_file_info *fi)
 {
+	if(get_file_exists(name+1)){
+		print_ERR();
+		return -1;
+	}
 	if((fi->flags & O_WRONLY) && !(fi->flags & (0x800)))
 	if(set_file_size(name+1,0) != 0)
+	{
+		printf("%s\n",__func__);
+		print_ERR();
 		return -1;
+	}
 	return 0;
 }
 static int aafat_truncate(const char * name, off_t size, struct fuse_file_info *fi)
 {
 	if(set_file_size(name+1,size) != 0)
+	{
+		print_ERR();
 		return -1;
+	}
 	return 0;
 }
 
