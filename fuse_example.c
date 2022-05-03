@@ -82,8 +82,6 @@ static int aafat_read(const char *name, char *buf, size_t size, off_t offset,str
 
 static int aafat_write(const char *name,const char *data, size_t size, off_t off, struct fuse_file_info *fi)
 {	(void) fi;
-	if(set_file_size(name+1,size+off) != 0)
-		return -1;
 	if(write_file(name+1,(void*)data,size,off) != 0)
 		return -1;
 	return size;
@@ -105,7 +103,21 @@ static int aafat_unlink(const char *name)
 	return ret;
 }
 
-static int aafat_open(const char *path, struct fuse_file_info *fi)
+static int aafat_open(const char *name, struct fuse_file_info *fi)
+{
+	if((fi->flags & O_WRONLY) && !(fi->flags & (0x800)))
+	if(set_file_size(name+1,0) != 0)
+		return -1;
+	return 0;
+}
+static int aafat_truncate(const char * name, off_t size, struct fuse_file_info *fi)
+{
+	if(set_file_size(name+1,size) != 0)
+		return -1;
+	return 0;
+}
+
+static int aafat_utimens()
 {
 	return 0;
 }
@@ -118,6 +130,8 @@ static const struct fuse_operations aafat_oper = {
 	.write		= aafat_write,
 	.create		= aafat_create,
 	.unlink		= aafat_unlink,
+	.utimens	= aafat_utimens,
+	.truncate	= aafat_truncate,
 };
 
 FILE *fp;

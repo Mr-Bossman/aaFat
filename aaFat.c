@@ -58,6 +58,7 @@ static ERR err = -ERR_OK;
 	} while(0)
 
 #define min(a,b) (((a)>(b))?(b):(a))
+#define max(a,b) (((a)<(b))?(b):(a))
 
 int read_blk(size_t offset, unsigned char *mem);
 int write_blk(size_t offset, unsigned char *mem);
@@ -100,7 +101,7 @@ static uint32_t get_freeblock();
 static uint32_t extend_blocks(uint32_t index);
 static uint32_t add_block();
 static int del_block(uint32_t index);
-static int new_file_size(const char *name, size_t size);
+static int new_file_size(const char *name, size_t size, uint8_t shrink);
 static int check_block_loop(uint32_t index);
 static int end_block(uint32_t index);
 
@@ -253,7 +254,7 @@ static int check_block_loop(uint32_t index)
 		err = -BLK_OOB;
 		return err;
 	}
-	uint32_t tortoise = index;
+	/*uint32_t tortoise = index;
 	uint32_t hare = ((uint32_t *)fat)[index];
 	while (hare && ((uint32_t *)fat)[hare])
 	{
@@ -264,7 +265,7 @@ static int check_block_loop(uint32_t index)
 		}
 		tortoise = ((uint32_t *)fat)[tortoise];
 		hare = ((uint32_t *)fat)[((uint32_t *)fat)[hare]];
-	}
+	}*/
 	return ERR_OK;
 }
 
@@ -625,7 +626,7 @@ size_t get_file_size(const char *name)
 
 /* Updates size not block */
 /* Returns error num. */
-static int new_file_size(const char *name, size_t size)
+static int new_file_size(const char *name, size_t size, uint8_t shrink)
 {
 	size_t b = strnlen(name, 16);
 	if (b == 16)
@@ -650,6 +651,9 @@ static int new_file_size(const char *name, size_t size)
 			if (b == strnlen(name, 16))
 				if (!strncmp(name, ((name_file *)name_table)[i].name, 16))
 				{
+					size_t tmp = ((name_file *)name_table)[i].size_b;
+					if(!shrink)
+						size = max(size,tmp);
 					((name_file *)name_table)[i].size_b = size;
 					if (write_blk(blocks, name_table))
 					{
@@ -693,7 +697,7 @@ int set_file_size(const char * name,size_t size){
 	}
 	total = get_block_len(blk);
 	chk_err_e();
-	new_file_size(name, size);
+	new_file_size(name, size, 1);
 	chk_err_e();
 	return ERR_OK;
 }
@@ -905,7 +909,7 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 		} while (!tmp);
 		blk = tmp;
 	}
-	new_file_size(file_name, sz);
+	new_file_size(file_name, sz, 0);
 	chk_err_e();
 	return ERR_OK;
 }
