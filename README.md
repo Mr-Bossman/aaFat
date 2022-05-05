@@ -18,7 +18,7 @@ aaFat is a simple FAT8 like filesystem.
 - Looping check
 
 
-<img align="center" src="https://github.com/Mr-Bossman/aaFat/edit/main/example.svg"/>
+<img align="center" src="https://raw.githubusercontent.com/Mr-Bossman/aaFat/main/example.svg"/>
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
