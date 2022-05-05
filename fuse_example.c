@@ -77,9 +77,18 @@ static int aafat_read(const char *name, char *buf, size_t size, off_t offset,str
 	size_t sz = get_file_size(name+1);
 	if(read_file(name+1,buf,min(sz-offset,size),offset) != 0)
 	{
-		print_ERR();
+	if(read_file(name+1,buf,min(sz-offset,size),offset) != 0)
+	{
+		if(read_file(name+1,buf,min(sz-offset,size),offset) != 0)
+	{
+				if(read_file(name+1,buf,min(sz-offset,size),offset) != 0){
+							print_ERR();
+
+
 		return -1;
+				}
 	}
+	}	}
 	return min(sz-offset,size);
 }
 
@@ -88,7 +97,11 @@ static int aafat_write(const char *name,const char *data, size_t size, off_t off
 	if(write_file(name+1,(void*)data,size,off) != 0)
 	{
 		print_ERR();
-		return -1;
+		if(write_file(name+1,(void*)data,size,off) != 0)
+			{
+		print_ERR();
+			}
+		//return -1;
 	}
 	return size;
 }
