@@ -3,7 +3,7 @@
 aaFat is a simple FAT8 like filesystem.
 ###### Features:
 - Under 1000 lines of C
-- No alloc or malloc
+- No calloc or malloc
 - Very simple
 
 ###### Limitations:
@@ -17,6 +17,8 @@ aaFat is a simple FAT8 like filesystem.
 - Examples
 - Looping check
 
+
+<img align="center" src="https://raw.githubusercontent.com/Mr-Bossman/aaFat/main/example.svg"/>
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
