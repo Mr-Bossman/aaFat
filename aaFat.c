@@ -772,8 +772,7 @@ int new_file(const char *name)
 		size_t i = 0;
 		while (1)
 		{
-			size_t b = strnlen(((name_file *)name_table)[i].name, 16);
-			if (!b || ((name_file *)name_table)[i].index == 1)
+			if (((name_file *)name_table)[i].index == 0 || ((name_file *)name_table)[i].index == 1)
 			{
 				name_file tmp;
 				memcpy(tmp.name, name_padded, 16);
@@ -969,7 +968,7 @@ void print_file_table()
 		size_t i = 0;
 		while (1)
 		{
-			if (!strnlen(((name_file *)name_table)[i].name, 16))
+			if (((name_file *)name_table)[i].index == 0)
 				break;
 			if (((name_file *)name_table)[i].index == 1)
 			{
