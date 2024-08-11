@@ -12,7 +12,14 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 #include "aaFat.h"
+
 #define min(a,b) (((a)>(b))?(b):(a))
+
+#define BLOCK_SIZE 1024
+#define TABLE_LEN 50
+
+static int write_blk(size_t offset, unsigned char *mem);
+static int read_blk(size_t offset, unsigned char *mem);
 
 
 static int aafat_getattr(const char *name, struct stat *stbuf, struct fuse_file_info *fi)
@@ -155,6 +162,17 @@ FILE *fp;
 
 int main(int argc, char *argv[])
 {
+	int ret;
+	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+	fs_config_t config = {
+		.block_size = BLOCK_SIZE,
+		.table_len = TABLE_LEN,
+		.read_blk = read_blk,
+		.write_blk = write_blk
+	};
+
+	init_fs(&config);
+
 	fp = fopen("fs.dat","rb+");
 	if (!fp){
 		fp = fopen("fs.dat","wb+");
@@ -164,7 +182,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	validate_FAT();
-	int ret = FAT_ERRpop();
+	ret = FAT_ERRpop();
 	if(ret){
 		write_FAT();
 		ret = FAT_ERRpop();
@@ -174,19 +192,19 @@ int main(int argc, char *argv[])
 			return ret;
 		}
 	}
-	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
+
 	ret = fuse_main(args.argc, args.argv, &aafat_oper, NULL);
 	fuse_opt_free_args(&args);
 	return ret;
 }
 
-int write_blk(size_t offset, unsigned char *mem){
+static int write_blk(size_t offset, unsigned char *mem) {
 	fseek(fp, offset*BLOCK_SIZE, SEEK_SET);
 	fwrite(mem, 1, BLOCK_SIZE, fp);
 	return 0;
 }
 
-int read_blk(size_t offset, unsigned char *mem){
+static int read_blk(size_t offset, unsigned char *mem) {
 	fseek(fp, offset*BLOCK_SIZE, SEEK_SET);
 	fread(mem, 1, BLOCK_SIZE, fp);
 	return 0;

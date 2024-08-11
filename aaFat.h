@@ -13,6 +13,18 @@ typedef struct
     size_t size_b;
 }name_file;
 
+typedef int (*blk_ops_t)(size_t offset, unsigned char *mem);
+
+typedef struct
+{
+	uint32_t block_size;
+	uint32_t table_len;
+	blk_ops_t read_blk;
+	blk_ops_t write_blk;
+} fs_config_t;
+
+int init_fs(fs_config_t *config);
+
 int write_FAT();
 int validate_FAT();
 size_t file_count();
@@ -38,11 +50,6 @@ void print_fat();
 void print_file_table();
 int print_ERR();
 
-/* START For user to implement */
-int read_blk(size_t offset, unsigned char *mem);
-int write_blk(size_t offset, unsigned char *mem);
-/* END For user to implement */
-
 #define ENUMS(x) [x] = #x
 typedef enum ERR {
     ERR_OK,
@@ -58,4 +65,10 @@ typedef enum ERR {
     FS_INVALID, // bad Ftable
 }ERR;
 ERR FAT_ERRpop();
+
+#if defined(BLOCK_SIZE) && defined(TABLE_LEN)
+int read_blk(size_t offset, unsigned char *mem);
+int write_blk(size_t offset, unsigned char *mem);
+#endif
+
 #endif

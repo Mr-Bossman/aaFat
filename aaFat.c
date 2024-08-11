@@ -1,32 +1,4 @@
-
 #include "aaFat.h"
-
-#ifdef EXAMPLE_
-
-//#define BACKTRACE_ERR
-#define BT_SZ 100
-#define TABLE_LEN 50
-#define BLOCK_SIZE 1024
-
-unsigned char *store;
-
-int read_blk(size_t offset, unsigned char *mem)
-{
-	if (offset >= TABLE_LEN)
-		return -1;
-	memcpy(mem, store + (offset * BLOCK_SIZE), BLOCK_SIZE);
-	return ERR_OK;
-}
-
-int write_blk(size_t offset, unsigned char *mem)
-{
-	if (offset >= TABLE_LEN)
-		return -1;
-	memcpy(store + (offset * BLOCK_SIZE), mem, BLOCK_SIZE);
-	return ERR_OK;
-}
-
-#endif
 
 #ifdef BACKTRACE_ERR
 #include <execinfo.h>
@@ -40,16 +12,20 @@ int write_blk(size_t offset, unsigned char *mem)
 /* Curent error number. */
 static ERR err = -ERR_OK;
 
+static fs_config_t config;
+
 #define chk_err() \
 	do { \
 		if (err) \
 			return; \
 	} while(0)
+
 #define chk_err_e() \
 	do { \
 		if (err)		\
 			return err; \
 	} while(0)
+
 #define fatal_check() \
 	do { \
 		if (err) \
@@ -91,6 +67,11 @@ int print_ERR()
 	return ret;
 }
 
+#if !defined (BLOCK_SIZE) || !defined (TABLE_LEN)
+static int read_blk(size_t offset, unsigned char *mem);
+static int write_blk(size_t offset, unsigned char *mem);
+#endif
+
 static uint32_t get_nextblock(uint32_t block_index);
 static uint32_t get_block_itter(uint32_t start, uint32_t i);
 static uint32_t get_block_len(uint32_t start);
@@ -102,18 +83,38 @@ static int new_file_size(const char *name, size_t size, uint8_t shrink);
 static int check_block_loop(uint32_t index);
 static int end_block(uint32_t index);
 
+#if !defined (BLOCK_SIZE) || !defined (TABLE_LEN)
+
+static int read_blk(size_t offset, unsigned char *mem)
+{
+	config.read_blk(offset, mem);
+	return ERR_OK;
+}
+
+static int write_blk(size_t offset, unsigned char *mem)
+{
+	config.write_blk(offset, mem);
+	return ERR_OK;
+}
+
+#undef BLOCK_SIZE
+#define BLOCK_SIZE config.block_size
+
+#undef TABLE_LEN
+#define TABLE_LEN config.table_len
+
+#endif
+
+int init_fs(fs_config_t *config_)
+{
+	config = *config_;
+	return ERR_OK;
+}
+
 /* Writes FAT to block, over writes. */
 /* Returns error num. */
 int write_FAT()
 {
-#ifdef EXAMPLE_
-	store = malloc(BLOCK_SIZE*TABLE_LEN);
-	if(!store)
-	{
-		printf("Can't alloc.\n");
-
-	}
-#endif
 	if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t))
 	{
 		printf("Invalid conf.\n");
@@ -184,7 +185,7 @@ int validate_FAT()
 /* Returns error num or block. */
 static uint32_t get_nextblock(uint32_t block_index)
 {
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (block_index > TABLE_LEN)
 	{
 		err = -BLK_OOB;
@@ -240,7 +241,7 @@ static uint32_t get_block_len(uint32_t start)
 /* Returns error num. */
 static int check_block_loop(uint32_t index)
 {
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat))
 	{
 		err = -READ_BLK_ERR;
@@ -298,7 +299,7 @@ static int check_block_loop(uint32_t index)
 /* Returns error num or block. */
 static uint32_t get_freeblock()
 {
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat))
 	{
 		err = -READ_BLK_ERR;
@@ -315,7 +316,7 @@ static uint32_t get_freeblock()
 /* Returns error num. */
 static uint32_t extend_blocks(uint32_t index)
 {
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat))
 	{
 		err = -READ_BLK_ERR;
@@ -353,7 +354,7 @@ static uint32_t extend_blocks(uint32_t index)
 /* Returns error num. */
 static int end_block(uint32_t index)
 {
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat))
 	{
 		err = -READ_BLK_ERR;
@@ -372,7 +373,7 @@ static int end_block(uint32_t index)
 /* Returns error num or block. */
 static uint32_t add_block()
 {
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat))
 	{
 		err = -READ_BLK_ERR;
@@ -406,7 +407,7 @@ static int del_block(uint32_t index)
 		err = -BLK_OOB;
 		return err;
 	}
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat))
 	{
 		err = -READ_BLK_ERR;
@@ -436,7 +437,7 @@ size_t file_count()
 	fatal_check();
 	size_t n = 0;
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -470,7 +471,7 @@ int get_file_index(name_file *ret, size_t index)
 	fatal_check();
 	uint32_t blocks = 0;
 	size_t n = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -512,7 +513,7 @@ uint32_t get_index_file(const char *name)
 	}
 	uint32_t blocks = 0;
 	size_t n = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -550,7 +551,7 @@ uint32_t get_file_block(const char *name)
 		return err;
 	}
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -587,7 +588,7 @@ int get_file_exists(const char *name)
 		return err;
 	}
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -624,7 +625,7 @@ size_t get_file_size(const char *name)
 		return err;
 	}
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -660,7 +661,7 @@ static int new_file_size(const char *name, size_t size, uint8_t shrink)
 		return err;
 	}
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -752,7 +753,7 @@ int new_file(const char *name)
 	char name_padded[16] = {0};
 	memcpy(name_padded, name, b);
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while (1)
 	{
 		uint32_t tmp = get_nextblock(blocks);
@@ -806,7 +807,7 @@ int del_file(const char *name)
 	char name_padded[16] = {0};
 	memcpy(name_padded, name, b);
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		chk_err_e();
@@ -858,7 +859,7 @@ int read_file(const char *file_name, void *buffer, size_t count, size_t offset)
 	chk_err_e();
 	uint32_t blk = get_file_block(file_name);
 	chk_err_e();
-	unsigned char BLOCKS[BLOCK_SIZE] = {0};
+	unsigned char BLOCKS[BLOCK_SIZE];
 	while (blk)
 	{
 		chk_err_e();
@@ -894,7 +895,7 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 	char *buf = buffer;
 	uint32_t blk = get_file_block(file_name);
 	chk_err_e();
-	unsigned char BLOCKS[BLOCK_SIZE] = {0};
+	unsigned char BLOCKS[BLOCK_SIZE];
 	size_t sz = offset + count;
 	while (1)
 	{
@@ -942,7 +943,7 @@ int write_file(const char *file_name, void *buffer, size_t count, size_t offset)
 void print_fat()
 {
 	puts("FAT, linked list:");
-	unsigned char fat[BLOCK_SIZE] = {0};
+	unsigned char fat[BLOCK_SIZE];
 	read_blk(0, fat);
 	printf("%3d", ((uint32_t *)fat)[0]);
 	for (size_t i = 1; i < TABLE_LEN; i++)
@@ -958,7 +959,7 @@ void print_fat()
 void print_file_table()
 {
 	uint32_t blocks = 0;
-	unsigned char name_table[BLOCK_SIZE] = {0};
+	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks)))
 	{
 		read_blk(blocks, name_table);

@@ -5,15 +5,18 @@
 #include <assert.h>
 #include "aaFat.h"
 
+#define BLOCK_SIZE 1024
+#define TABLE_LEN 50
+
 FILE* fp;
 
-int write_blk(size_t offset, unsigned char *mem){
+static int write_blk(size_t offset, unsigned char *mem){
 	fseek(fp, offset*BLOCK_SIZE, SEEK_SET);
 	fwrite(mem, 1, BLOCK_SIZE, fp);
 	return 0;
 }
 
-int read_blk(size_t offset, unsigned char *mem){
+static int read_blk(size_t offset, unsigned char *mem){
 	fseek(fp, offset*BLOCK_SIZE, SEEK_SET);
 	fread(mem, 1, BLOCK_SIZE, fp);
 	return 0;
@@ -22,6 +25,14 @@ int read_blk(size_t offset, unsigned char *mem){
 int main(int argc, char *argv[])
 {
 	int ret;
+	fs_config_t config = {
+		.block_size = BLOCK_SIZE,
+		.table_len = TABLE_LEN,
+		.read_blk = read_blk,
+		.write_blk = write_blk
+	};
+
+	init_fs(&config);
 
 	if (argc != 2) {
 		printf("Usage: %s <file>\n", argv[0]);

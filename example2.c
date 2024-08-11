@@ -3,21 +3,19 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include "example2.h"
 #include "aaFat.h"
-
-#define TABLE_LEN 50
-#define BLOCK_SIZE 1024
 
 unsigned char *store;
 
-static int read_blk(size_t offset, unsigned char *mem) {
+int read_blk(size_t offset, unsigned char *mem) {
 	if (offset >= TABLE_LEN)
 		return -1;
 	memcpy(mem, store + (offset * BLOCK_SIZE), BLOCK_SIZE);
 	return ERR_OK;
 }
 
-static int write_blk(size_t offset, unsigned char *mem) {
+int write_blk(size_t offset, unsigned char *mem) {
 	if (offset >= TABLE_LEN)
 		return -1;
 	memcpy(store + (offset * BLOCK_SIZE), mem, BLOCK_SIZE);
@@ -25,14 +23,6 @@ static int write_blk(size_t offset, unsigned char *mem) {
 }
 
 int main() {
-	fs_config_t config = {
-		.block_size = BLOCK_SIZE,
-		.table_len = TABLE_LEN,
-		.read_blk = read_blk,
-		.write_blk = write_blk
-	};
-
-	init_fs(&config);
 
 	store = malloc(BLOCK_SIZE*TABLE_LEN);
 	if(!store) {
