@@ -1,11 +1,11 @@
 BUILD_DIR = build
 CC = gcc
-CFLAGS = -Wall -Wextra -Wpedantic -Wno-unused-function
+CFLAGS = -Wall -Wextra -Wpedantic -Wno-unused-function -Iinclude
 CFLAGS += -Wno-unused-parameter -Wno-sign-compare
 LDFLAGS =
 FUSE_CFLAGS = $(shell pkg-config fuse3 --cflags)
 FUSE_LDFLAGS = $(shell pkg-config fuse3 --libs)
-SOURCES = aaFat.c example.c printfat.c fuse_example.c example2.c
+SOURCES = src/aaFat.c src/example.c src/printfat.c src/fuse_example.c src/example2.c
 
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(SOURCES:.c=.o)))
 DEP = $(OBJECTS:%.o=%.d)
