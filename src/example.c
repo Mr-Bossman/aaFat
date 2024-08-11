@@ -25,17 +25,15 @@ static int write_blk(size_t offset, unsigned char *mem) {
 }
 
 int main() {
-	fs_config_t config = {
-		.block_size = BLOCK_SIZE,
-		.table_len = TABLE_LEN,
-		.read_blk = read_blk,
-		.write_blk = write_blk
-	};
+	fs_config_t config = { .block_size = BLOCK_SIZE,
+			       .table_len = TABLE_LEN,
+			       .read_blk = read_blk,
+			       .write_blk = write_blk };
 
 	init_fs(&config);
 
-	store = malloc(BLOCK_SIZE*TABLE_LEN);
-	if(!store) {
+	store = malloc(BLOCK_SIZE * TABLE_LEN);
+	if (!store) {
 		puts("malloc failed.\n");
 		return 1;
 	}
@@ -45,23 +43,19 @@ int main() {
 
 	new_file("br");
 
-
-
 	new_file("3");
 	new_file("4");
 
 	get_file_block("3");
 
-
 	del_file("br");
 	del_file("3");
-
 
 	new_file("3");
 	new_file("00");
 
 	print_file_table();
 	file_count();
-	printf("%u\n",validate_FAT());
+	printf("%u\n", validate_FAT());
 	return 0;
 }

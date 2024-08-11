@@ -23,9 +23,8 @@ int write_blk(size_t offset, unsigned char *mem) {
 }
 
 int main() {
-
-	store = malloc(BLOCK_SIZE*TABLE_LEN);
-	if(!store) {
+	store = malloc(BLOCK_SIZE * TABLE_LEN);
+	if (!store) {
 		puts("malloc failed.\n");
 		return 1;
 	}
@@ -35,23 +34,19 @@ int main() {
 
 	new_file("br");
 
-
-
 	new_file("3");
 	new_file("4");
 
 	get_file_block("3");
 
-
 	del_file("br");
 	del_file("3");
-
 
 	new_file("3");
 	new_file("00");
 
 	print_file_table();
 	file_count();
-	printf("%u\n",validate_FAT());
+	printf("%u\n", validate_FAT());
 	return 0;
 }
