@@ -1,3 +1,4 @@
+#include <time.h>
 #define FUSE_USE_VERSION 34
 
 #include <fuse.h>
@@ -105,6 +106,9 @@ static int aafat_write(const char *name, const char *data, size_t size,
 
 static int aafat_create(const char *name, mode_t mode,
 			struct fuse_file_info *fi) {
+	(void)mode;
+	(void)fi;
+
 	int ret = new_file(name + 1);
 	if (ret)
 		print_ERR();
@@ -134,6 +138,8 @@ static int aafat_open(const char *name, struct fuse_file_info *fi) {
 }
 static int aafat_truncate(const char *name, off_t size,
 			  struct fuse_file_info *fi) {
+	(void)fi;
+
 	if (set_file_size(name + 1, size) != 0) {
 		print_ERR();
 		return -1;
@@ -141,7 +147,11 @@ static int aafat_truncate(const char *name, off_t size,
 	return 0;
 }
 
-static int aafat_utimens() {
+static int aafat_utimens(const char *name, const struct timespec *size,
+			  struct fuse_file_info *f) {
+	(void)name;
+	(void)f;
+	(void)size;
 	return 0;
 }
 

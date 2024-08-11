@@ -37,7 +37,7 @@ static fs_config_t config;
 #define max(a, b) (((a) < (b)) ? (b) : (a))
 
 /* Clears and returns current error number. */
-ERR FAT_ERRpop() {
+ERR FAT_ERRpop(void) {
 	ERR tmp = err;
 	err = -ERR_OK;
 	return tmp;
@@ -59,7 +59,7 @@ static char *ERR_NAME[] = {
 };
 
 /* Prints current error number and name. */
-int print_ERR() {
+int print_ERR(void) {
 	ERR tmp = FAT_ERRpop();
 	int ret = printf("ERR: %s\n", ERR_NAME[-tmp]);
 	if (tmp != ERR_OK) {
@@ -81,9 +81,9 @@ static int write_blk(size_t offset, unsigned char *mem);
 static uint32_t get_nextblock(uint32_t block_index);
 static uint32_t get_block_itter(uint32_t start, uint32_t i);
 static uint32_t get_block_len(uint32_t start);
-static uint32_t get_freeblock();
+static uint32_t get_freeblock(void);
 static uint32_t extend_blocks(uint32_t index);
-static uint32_t add_block();
+static uint32_t add_block(void);
 static int del_block(uint32_t index);
 static int new_file_size(const char *name, size_t size, uint8_t shrink);
 static int check_block_loop(uint32_t index);
@@ -116,7 +116,7 @@ int init_fs(fs_config_t *config_) {
 
 /* Writes FAT to block, over writes. */
 /* Returns error num. */
-int write_FAT() {
+int write_FAT(void) {
 	if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t)) {
 		printf("Invalid conf.\n");
 		err = FS_INVALID;
@@ -141,7 +141,7 @@ int write_FAT() {
 
 /* Returns the integrity of file system. */
 /* Returns error num. */
-int validate_FAT() {
+int validate_FAT(void) {
 	err = ERR_OK;
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
@@ -279,7 +279,7 @@ static int check_block_loop(uint32_t index) {
 
 /* Gets next free block. */
 /* Returns error num or block. */
-static uint32_t get_freeblock() {
+static uint32_t get_freeblock(void) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
@@ -342,7 +342,7 @@ static int end_block(uint32_t index) {
 
 /* Add new linked list to FAT. */
 /* Returns error num or block. */
-static uint32_t add_block() {
+static uint32_t add_block(void) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
@@ -394,7 +394,7 @@ static int del_block(uint32_t index) {
 
 /* Gets the total number of files. */
 /* Returns error num or number of files. */
-size_t file_count() {
+size_t file_count(void) {
 	fatal_check();
 	size_t n = 0;
 	uint32_t blocks = 0;
@@ -864,7 +864,7 @@ end:
 }
 
 /* No error checking. */
-void print_fat() {
+void print_fat(void) {
 	puts("FAT, linked list:");
 	unsigned char fat[BLOCK_SIZE];
 	read_blk(0, fat);
@@ -879,7 +879,7 @@ void print_fat() {
 }
 
 /* No error checking. */
-void print_file_table() {
+void print_file_table(void) {
 	uint32_t blocks = 0;
 	unsigned char name_table[BLOCK_SIZE];
 	while ((blocks = get_nextblock(blocks))) {

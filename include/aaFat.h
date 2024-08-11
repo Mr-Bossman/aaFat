@@ -23,9 +23,9 @@ typedef struct {
 
 int init_fs(fs_config_t *config);
 
-int write_FAT();
-int validate_FAT();
-size_t file_count();
+int write_FAT(void);
+int validate_FAT(void);
+size_t file_count(void);
 int get_file_index(name_file *ret, size_t index);
 /* name max len 16 */
 uint32_t get_index_file(const char *name);
@@ -44,9 +44,9 @@ int del_file(const char *name);
 /* name max len 16 */
 int read_file(const char *file_name, void *buf, size_t count, size_t offset);
 int write_file(const char *file_name, void *buf, size_t count, size_t offset);
-void print_fat();
-void print_file_table();
-int print_ERR();
+void print_fat(void);
+void print_file_table(void);
+int print_ERR(void);
 
 #define ENUMS(x) [x] = #x
 typedef enum ERR {
@@ -62,7 +62,7 @@ typedef enum ERR {
 	FS_OOB, // cant read more than f size
 	FS_INVALID, // bad Ftable
 } ERR;
-ERR FAT_ERRpop();
+ERR FAT_ERRpop(void);
 
 #if defined(BLOCK_SIZE) && defined(TABLE_LEN)
 int read_blk(size_t offset, unsigned char *mem);

@@ -1,7 +1,5 @@
 -Iinclude
+-I/usr/include/fuse3
 -Wall
 -Wextra
 -Wpedantic
--Wno-unused-function
--Wno-unused-parameter
--Wno-sign-compare

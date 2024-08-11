@@ -24,7 +24,7 @@ static int write_blk(size_t offset, unsigned char *mem) {
 	return ERR_OK;
 }
 
-int main() {
+int main(void) {
 	fs_config_t config = { .block_size = BLOCK_SIZE,
 			       .table_len = TABLE_LEN,
 			       .read_blk = read_blk,

@@ -22,7 +22,7 @@ int write_blk(size_t offset, unsigned char *mem) {
 	return ERR_OK;
 }
 
-int main() {
+int main(void) {
 	store = malloc(BLOCK_SIZE * TABLE_LEN);
 	if (!store) {
 		puts("malloc failed.\n");
