@@ -38,6 +38,11 @@ void print_fat();
 void print_file_table();
 int print_ERR();
 
+/* START For user to implement */
+int read_blk(size_t offset, unsigned char *mem);
+int write_blk(size_t offset, unsigned char *mem);
+/* END For user to implement */
+
 #define ENUMS(x) [x] = #x
 typedef enum ERR {
     ERR_OK,

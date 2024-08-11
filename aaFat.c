@@ -60,9 +60,6 @@ static ERR err = -ERR_OK;
 #define min(a,b) (((a)>(b))?(b):(a))
 #define max(a,b) (((a)<(b))?(b):(a))
 
-int read_blk(size_t offset, unsigned char *mem);
-int write_blk(size_t offset, unsigned char *mem);
-
 /* Clears and returns current error number. */
 ERR FAT_ERRpop()
 {
