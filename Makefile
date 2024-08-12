@@ -40,7 +40,7 @@ printfat: aaFat.o  printfat.o
 fuse_example: aaFat.o fuse_example.o
 	$(CC) $^ $(FUSE_CFLAGS) $(FUSE_LDFLAGS) $(LDFLAGS) -o $@
 
-fuse_example_test:
+fuse_example_test: fuse_example
 	mkdir -p test
 	./fuse_example -f test
 
