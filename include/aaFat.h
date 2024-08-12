@@ -44,8 +44,8 @@ int del_file(const char *name);
 /* name max len 16 */
 int read_file(const char *file_name, void *buf, size_t count, size_t offset);
 int write_file(const char *file_name, void *buf, size_t count, size_t offset);
-void print_fat(void);
-void print_file_table(void);
+int print_fat(size_t skip);
+int print_file_table(void);
 int print_ERR(void);
 
 #define ENUMS(x) [x] = #x

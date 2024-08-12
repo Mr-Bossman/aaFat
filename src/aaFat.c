@@ -796,27 +796,31 @@ end:
 	return ERR_OK;
 }
 
-/* No error checking. */
-void print_fat(void) {
+static size_t print_n(uint32_t *mem, size_t len) {
+	size_t wrote = 0;
+	wrote += printf("%3d", mem[0]);
+	for (size_t i = 1; i < len; i++)
+		wrote += printf(",%3d", mem[i]);
+	return wrote;
+}
+int print_fat(size_t skip) {
 	puts("FAT, linked list:");
 	unsigned char fat[BLOCK_SIZE];
-	read_blk(0, fat);
-	printf("%3d", ((uint32_t *)fat)[0]);
-	for (size_t i = 1; i < TABLE_LEN; i++)
-		printf(",%3d", ((uint32_t *)fat)[i]);
-	puts("");
-	printf("  0");
-	for (size_t i = 1; i < TABLE_LEN; i++)
-		printf(",%3lu", i);
-	puts("");
+	if (read_blk(0, fat)) {
+		err = -READ_BLK_ERR;
+		return err;
+	}
+	for (size_t i = 0; i < TABLE_LEN; i += skip) {
+		printf("%-3ld: ", i);
+		print_n((uint32_t *)fat + i, skip);
+		puts("");
+	}
+	return ERR_OK;
 }
 
-/* No error checking. */
-void print_file_table(void) {
-	uint32_t blocks = 0;
+int print_file_table(void) {
 	unsigned char name_table[BLOCK_SIZE];
-	while ((blocks = get_nextblock(blocks))) {
-		read_blk(blocks, name_table);
+	for_each_block(name_table)
 		size_t i = 0;
 		while (1) {
 			if (get_name_file(name_table, i).index == 0)
@@ -833,8 +837,10 @@ void print_file_table(void) {
 			{
 				uint32_t blk =
 					get_name_file(name_table, i).index;
-				while ((blk = get_nextblock(blk)))
+				while ((blk = get_nextblock(blk))) {
+					chk_err_e();
 					printf(",%u", blk);
+				}
 				puts("");
 			}
 			i++;
@@ -842,4 +848,5 @@ void print_file_table(void) {
 				break;
 		}
 	}
+	return ERR_OK;
 }

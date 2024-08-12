@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 	validate_FAT();
 	ret = FAT_ERRpop();
 	puts("print_fat");
-	print_fat();
+	print_fat(16);
 	puts("print_file_table");
 	print_file_table();
 	printf("validate_FAT: ret = %d\n", ret);
