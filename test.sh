@@ -14,8 +14,9 @@ get_md5() {
 rm -f test/*
 for i in {1..100}; do
 	FILENAME=$(random_string)
-	SIZE=$(random_int 10 10)
-	BS=$(random_int 1024 1)
+	SIZE=$(random_int 100 10)
+	BS=$(random_int 8192 4096)
+
 	dd if=/dev/random of=/tmp/$FILENAME bs=$BS count=$SIZE 2>/dev/null
 	HASH_B=$(get_md5 /tmp/$FILENAME)
 	dd if=/tmp/$FILENAME of=test/$FILENAME bs=$BS count=$SIZE 2>/dev/null

@@ -16,7 +16,7 @@
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
-#define BLOCK_SIZE 0x10000
+#define BLOCK_SIZE 0x1000
 #define TABLE_LEN (BLOCK_SIZE / 4)
 
 static int write_blk(size_t offset, unsigned char *mem);
@@ -122,11 +122,13 @@ static int aafat_write(const char *name, const char *data, size_t size,
 static int aafat_create(const char *name, mode_t mode,
 			struct fuse_file_info *fi) {
 	(void)mode;
-	(void)fi;
 
 	int ret = new_file(name + 1);
 	if (ret)
 		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
+
+	fi->direct_io = 1;
+	fi->keep_cache = 0;
 	return ret;
 }
 
@@ -149,9 +151,11 @@ static int aafat_open(const char *name, struct fuse_file_info *fi) {
 			       get_err_name());
 			return -1;
 		}
-
+	fi->direct_io = 1;
+	fi->keep_cache = 0;
 	return 0;
 }
+
 static int aafat_truncate(const char *name, off_t size,
 			  struct fuse_file_info *fi) {
 	(void)fi;
@@ -185,7 +189,18 @@ static int aafat_utimens(const char *name, const struct timespec *size,
 	return 0;
 }
 
+static void *aafat_init(struct fuse_conn_info *conn, struct fuse_config *cfg) {
+	(void)conn;
+	cfg->kernel_cache = 0;
+	cfg->direct_io = 1;
+        cfg->entry_timeout = 0;
+        cfg->attr_timeout = 0;
+        cfg->negative_timeout = 0;
+	return NULL;
+}
+
 static const struct fuse_operations aafat_oper = {
+	.init = aafat_init,
 	.getattr = aafat_getattr,
 	.readdir = aafat_readdir,
 	.open = aafat_open,

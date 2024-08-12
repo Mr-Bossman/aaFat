@@ -720,7 +720,7 @@ int del_file(const char *name) {
 int read_file(const char *file_name, void *buffer, size_t count,
 	      size_t offset) {
 	fatal_check();
-	char *buf = buffer;
+	unsigned char *buf = buffer;
 	if (count + offset > get_file_size(file_name)) {
 		err = -FS_OOB;
 		return err;
@@ -736,6 +736,19 @@ int read_file(const char *file_name, void *buffer, size_t count,
 			blk = get_nextblock(blk);
 			continue;
 		}
+		if (!offset && count >= BLOCK_SIZE) {
+			if (read_blk(blk, buf)) {
+				err = -READ_BLK_ERR;
+				return err;
+			}
+			count -= BLOCK_SIZE;
+			buf += BLOCK_SIZE;
+			if (!count)
+				break;
+			blk = get_nextblock(blk);
+			continue;
+		}
+
 		if (read_blk(blk, BLOCKS)) {
 			err = -READ_BLK_ERR;
 			return err;
@@ -758,7 +771,7 @@ int read_file(const char *file_name, void *buffer, size_t count,
 int write_file(const char *file_name, void *buffer, size_t count,
 	       size_t offset) {
 	fatal_check();
-	char *buf = buffer;
+	unsigned char *buf = buffer;
 	uint32_t blk = get_file_block(file_name);
 	chk_err_e();
 	unsigned char BLOCKS[BLOCK_SIZE];
@@ -769,6 +782,19 @@ int write_file(const char *file_name, void *buffer, size_t count,
 			offset -= BLOCK_SIZE;
 			goto end;
 		}
+
+		if (!offset && count >= BLOCK_SIZE) {
+			if (write_blk(blk, buf)) {
+				err = -WRITE_BLK_ERR;
+				return err;
+			}
+			count -= BLOCK_SIZE;
+			buf += BLOCK_SIZE;
+			if (!count)
+				break;
+			goto end;
+		}
+
 		if (read_blk(blk, BLOCKS)) {
 			err = -READ_BLK_ERR;
 			return err;
