@@ -44,7 +44,7 @@ ERR FAT_ERRpop(void) {
 }
 
 /* Names of ERR numbers. */
-static char *ERR_NAME[] = {
+static const char *ERR_NAME[] = {
 	ENUMS(ERR_OK),
 	ENUMS(READ_BLK_ERR),
 	ENUMS(WRITE_BLK_ERR),
@@ -57,6 +57,10 @@ static char *ERR_NAME[] = {
 	ENUMS(FS_OOB),
 	ENUMS(FS_INVALID)
 };
+
+const char *get_err_name(void) {
+	return ERR_NAME[-err];
+}
 
 /* Prints current error number and name. */
 int print_ERR(void) {
@@ -830,6 +834,10 @@ int print_file_table(void) {
 				if (i * sizeof(name_file) >= BLOCK_SIZE)
 					break;
 				continue;
+			}
+			if (strnlen(get_name_file(name_table, i).name, 16) >= 16) {
+				err = -FS_BNAME;
+				return err;
 			}
 			printf("%s, BLKS: %u",
 			       get_name_file(name_table, i).name,
