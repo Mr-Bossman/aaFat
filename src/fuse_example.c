@@ -17,7 +17,6 @@
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
 #define BLOCK_SIZE 0x1000
-#define TABLE_LEN (BLOCK_SIZE / 4)
 
 static int write_blk(size_t offset, unsigned char *mem);
 static int read_blk(size_t offset, unsigned char *mem);

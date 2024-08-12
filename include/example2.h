@@ -1,2 +1,1 @@
-#define TABLE_LEN 50
 #define BLOCK_SIZE 1024

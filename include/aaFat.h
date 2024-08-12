@@ -6,17 +6,20 @@
 
 #ifndef __AAFAT_H
 #define __AAFAT_H
+
+#define LIST_TYPE_MAX ((LIST_TYPE)~(LIST_TYPE)0)
+#define TABLE_LEN (BLOCK_SIZE / sizeof(LIST_TYPE))
 typedef struct {
 	char name[16];
-	uint32_t index;
+	LIST_TYPE index;
 	size_t size_b;
 } name_file;
 
 typedef int (*blk_ops_t)(size_t offset, unsigned char *mem);
 
 typedef struct {
-	uint32_t block_size;
-	uint32_t table_len;
+	LIST_TYPE block_size;
+	LIST_TYPE table_len;
 	blk_ops_t read_blk;
 	blk_ops_t write_blk;
 } fs_config_t;
@@ -28,13 +31,13 @@ int validate_FAT(void);
 size_t file_count(void);
 int get_file_index(name_file *ret, size_t index);
 /* name max len 16 */
-uint32_t get_index_file(const char *name);
+LIST_TYPE get_index_file(const char *name);
 /* name max len 16 */
 size_t get_file_size(const char *name);
 /* name max len 16 */
 int set_file_size(const char *name, size_t size);
 /* name max len 16 */
-uint32_t get_file_block(const char *name);
+LIST_TYPE get_file_block(const char *name);
 /* name max len 16 */
 int get_file_exists(const char *name);
 /* name max len 16 */

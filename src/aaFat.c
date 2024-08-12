@@ -82,16 +82,16 @@ static int read_blk(size_t offset, unsigned char *mem);
 static int write_blk(size_t offset, unsigned char *mem);
 #endif
 
-static uint32_t get_nextblock(uint32_t block_index);
-static uint32_t get_block_itter(uint32_t start, uint32_t i);
-static uint32_t get_block_len(uint32_t start);
-static uint32_t get_freeblock(void);
-static uint32_t extend_blocks(uint32_t index);
-static uint32_t add_block(void);
-static int del_block(uint32_t index);
+static LIST_TYPE get_nextblock(LIST_TYPE block_index);
+static LIST_TYPE get_block_itter(LIST_TYPE start, LIST_TYPE i);
+static LIST_TYPE get_block_len(LIST_TYPE start);
+static LIST_TYPE get_freeblock(void);
+static LIST_TYPE extend_blocks(LIST_TYPE index);
+static LIST_TYPE add_block(void);
+static int del_block(LIST_TYPE index);
 static int new_file_size(const char *name, size_t size, uint8_t shrink);
-static int check_block_loop(uint32_t index);
-static int end_block(uint32_t index);
+static int check_block_loop(LIST_TYPE index);
+static int end_block(LIST_TYPE index);
 static inline int match_name(const char *name_table_name, const char *name,
 			     size_t name_len);
 
@@ -116,7 +116,7 @@ static int write_blk(size_t offset, unsigned char *mem) {
 #endif
 
 #define for_each_block(block_data)                  \
-	uint32_t blocks = 0;                        \
+	LIST_TYPE blocks = 0;                        \
 	while ((blocks = get_nextblock(blocks))) {  \
 		chk_err_e();                        \
 		if (read_blk(blocks, block_data)) { \
@@ -140,15 +140,15 @@ int init_fs(fs_config_t *config_) {
 /* Writes FAT to block, over writes. */
 /* Returns error num. */
 int write_FAT(void) {
-	if (BLOCK_SIZE < TABLE_LEN * sizeof(uint32_t)) {
+	if (BLOCK_SIZE < TABLE_LEN * sizeof(LIST_TYPE)) {
 		printf("Invalid conf.\n");
 		err = FS_INVALID;
 		return err;
 	}
 	unsigned char fat[BLOCK_SIZE];
 	memset(fat, 0xFF, BLOCK_SIZE);
-	((uint32_t *)fat)[0] = 1;
-	((uint32_t *)fat)[1] = 0;
+	((LIST_TYPE *)fat)[0] = 1;
+	((LIST_TYPE *)fat)[1] = 0;
 	if (write_blk(0, fat)) {
 		err = -WRITE_BLK_ERR;
 		return err;
@@ -171,11 +171,11 @@ int validate_FAT(void) {
 		err = -READ_BLK_ERR;
 		return err;
 	}
-	if (((uint32_t *)fat)[0] != 1) {
+	if (((LIST_TYPE *)fat)[0] != 1) {
 		err = -FS_INVALID;
 		return err;
 	}
-	if (((uint32_t *)fat)[1] != 0) {
+	if (((LIST_TYPE *)fat)[1] != 0) {
 		err = -FS_INVALID;
 		return err;
 	}
@@ -199,7 +199,7 @@ int validate_FAT(void) {
 
 /* Gets Next block in linked list. */
 /* Returns error num or block. */
-static uint32_t get_nextblock(uint32_t block_index) {
+static LIST_TYPE get_nextblock(LIST_TYPE block_index) {
 	unsigned char fat[BLOCK_SIZE];
 	if (block_index > TABLE_LEN) {
 		err = -BLK_OOB;
@@ -209,8 +209,8 @@ static uint32_t get_nextblock(uint32_t block_index) {
 		err = -READ_BLK_ERR;
 		return err;
 	}
-	uint32_t tmp = ((uint32_t *)fat)[block_index];
-	if (tmp == UINT32_MAX) {
+	LIST_TYPE tmp = ((LIST_TYPE *)fat)[block_index];
+	if (tmp == LIST_TYPE_MAX) {
 		err = -FS_INVALID;
 		return err;
 	}
@@ -219,10 +219,10 @@ static uint32_t get_nextblock(uint32_t block_index) {
 
 /* Get 'i'th block from start. */
 /* Returns error num or block. */
-static uint32_t get_block_itter(uint32_t start, uint32_t i) {
+static LIST_TYPE get_block_itter(LIST_TYPE start, LIST_TYPE i) {
 	if (!i)
 		return start;
-	uint32_t blocks = start;
+	LIST_TYPE blocks = start;
 	while (((blocks = get_nextblock(blocks)))) {
 		chk_err_e();
 		i--;
@@ -235,9 +235,9 @@ static uint32_t get_block_itter(uint32_t start, uint32_t i) {
 
 /* Get total block lenth of linked list staring at start. */
 /* Returns error num or number of blocks. */
-static uint32_t get_block_len(uint32_t start) {
-	uint32_t i = 0;
-	uint32_t blocks = start;
+static LIST_TYPE get_block_len(LIST_TYPE start) {
+	LIST_TYPE i = 0;
+	LIST_TYPE blocks = start;
 	while ((blocks = get_nextblock(blocks))) {
 		chk_err_e();
 		i++;
@@ -247,7 +247,7 @@ static uint32_t get_block_len(uint32_t start) {
 
 /* Checks for loops in file system linked list. */
 /* Returns error num. */
-static int check_block_loop(uint32_t index) {
+static int check_block_loop(LIST_TYPE index) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
@@ -262,39 +262,39 @@ static int check_block_loop(uint32_t index) {
 		err = -FS_INVALID;
 		return err;
 	}
-	uint32_t tortoise = index;
-	uint32_t hare = ((uint32_t *)fat)[index];
-	while (hare && hare  >= TABLE_LEN && ((uint32_t *)fat)[hare] && ((uint32_t *)fat)[hare]  >= TABLE_LEN)
+	LIST_TYPE tortoise = index;
+	LIST_TYPE hare = ((LIST_TYPE *)fat)[index];
+	while (hare && hare  >= TABLE_LEN && ((LIST_TYPE *)fat)[hare] && ((LIST_TYPE *)fat)[hare]  >= TABLE_LEN)
 	{
 		if (tortoise == hare)
 		{
 			err = -FS_LOOP;
 			return err;
 		}
-		tortoise = ((uint32_t *)fat)[tortoise];
+		tortoise = ((LIST_TYPE *)fat)[tortoise];
 		if(tortoise >= TABLE_LEN)
 		{
 			err = -FS_INVALID;
 			return err;
 		}
-		if(tortoise == UINT32_MAX)
+		if(tortoise == LIST_TYPE_MAX)
 			tortoise = 0;
-		uint32_t tmp = ((uint32_t *)fat)[hare];
+		LIST_TYPE tmp = ((LIST_TYPE *)fat)[hare];
 		if(tmp >= TABLE_LEN)
 		{
 			err = -FS_INVALID;
 			return err;
 		}
-		if(tmp == UINT32_MAX)
+		if(tmp == LIST_TYPE_MAX)
 			hare = 0;
 		else
-			hare = ((uint32_t *)fat)[tmp];
+			hare = ((LIST_TYPE *)fat)[tmp];
 		if(hare >= TABLE_LEN)
 		{
 			err = -FS_INVALID;
 			return err;
 		}
-		if(hare == UINT32_MAX)
+		if(hare == LIST_TYPE_MAX)
 			hare = 0;
 	}*/
 	return ERR_OK;
@@ -302,14 +302,14 @@ static int check_block_loop(uint32_t index) {
 
 /* Gets next free block. */
 /* Returns error num or block. */
-static uint32_t get_freeblock(void) {
+static LIST_TYPE get_freeblock(void) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
 		return err;
 	}
 	for (size_t i = 0; i < TABLE_LEN; i++)
-		if (((uint32_t *)fat)[i] == UINT32_MAX)
+		if (((LIST_TYPE *)fat)[i] == LIST_TYPE_MAX)
 			return i;
 	err = -BLK_NSP;
 	return err;
@@ -317,7 +317,7 @@ static uint32_t get_freeblock(void) {
 
 /* Adds free block to end of link list. */
 /* Returns error num. */
-static uint32_t extend_blocks(uint32_t index) {
+static LIST_TYPE extend_blocks(LIST_TYPE index) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
@@ -325,15 +325,15 @@ static uint32_t extend_blocks(uint32_t index) {
 	}
 	check_block_loop(index);
 	chk_err_e();
-	uint32_t last;
+	LIST_TYPE last;
 	while (index) {
 		last = index;
-		index = ((uint32_t *)fat)[index];
+		index = ((LIST_TYPE *)fat)[index];
 	}
-	uint32_t tmp = get_freeblock();
+	LIST_TYPE tmp = get_freeblock();
 	chk_err_e();
-	((uint32_t *)fat)[last] = tmp;
-	((uint32_t *)fat)[tmp] = 0;
+	((LIST_TYPE *)fat)[last] = tmp;
+	((LIST_TYPE *)fat)[tmp] = 0;
 	if (write_blk(0, fat)) {
 		err = -WRITE_BLK_ERR;
 		return err;
@@ -349,13 +349,13 @@ static uint32_t extend_blocks(uint32_t index) {
 
 /* Ends a block after deleting. */
 /* Returns error num. */
-static int end_block(uint32_t index) {
+static int end_block(LIST_TYPE index) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
 		return err;
 	}
-	((uint32_t *)fat)[index] = 0;
+	((LIST_TYPE *)fat)[index] = 0;
 	if (write_blk(0, fat)) {
 		err = -WRITE_BLK_ERR;
 		return err;
@@ -365,15 +365,15 @@ static int end_block(uint32_t index) {
 
 /* Add new linked list to FAT. */
 /* Returns error num or block. */
-static uint32_t add_block(void) {
+static LIST_TYPE add_block(void) {
 	unsigned char fat[BLOCK_SIZE];
 	if (read_blk(0, fat)) {
 		err = -READ_BLK_ERR;
 		return err;
 	}
-	uint32_t tmp = get_freeblock();
+	LIST_TYPE tmp = get_freeblock();
 	chk_err_e();
-	((uint32_t *)fat)[tmp] = 0;
+	((LIST_TYPE *)fat)[tmp] = 0;
 	if (write_blk(0, fat)) {
 		err = -WRITE_BLK_ERR;
 		return err;
@@ -390,7 +390,7 @@ static uint32_t add_block(void) {
 
 /* Deletes all blocks in linked list after index. */
 /* Returns error num. */
-static int del_block(uint32_t index) {
+static int del_block(LIST_TYPE index) {
 	if (index == 0 || index > TABLE_LEN) {
 		err = -BLK_OOB;
 		return err;
@@ -402,11 +402,11 @@ static int del_block(uint32_t index) {
 	}
 	check_block_loop(index);
 	chk_err_e();
-	uint32_t last;
+	LIST_TYPE last;
 	while (index) {
 		last = index;
-		index = ((uint32_t *)fat)[index];
-		((uint32_t *)fat)[last] = -1;
+		index = ((LIST_TYPE *)fat)[index];
+		((LIST_TYPE *)fat)[last] = -1;
 	}
 	if (write_blk(0, fat)) {
 		err = -WRITE_BLK_ERR;
@@ -464,7 +464,7 @@ int get_file_index(name_file *ret, size_t index) {
 
 /* Gets the index of index. */
 /* Returns error num. */
-uint32_t get_index_file(const char *name) {
+LIST_TYPE get_index_file(const char *name) {
 	fatal_check();
 	size_t name_len = strnlen(name, 16);
 	if (name_len == 16) {
@@ -490,7 +490,7 @@ uint32_t get_index_file(const char *name) {
 
 /* Gets first block of file. */
 /* Returns error num or block. */
-uint32_t get_file_block(const char *name) {
+LIST_TYPE get_file_block(const char *name) {
 	fatal_check();
 	size_t name_len = strnlen(name, 16);
 	if (name_len == 16) {
@@ -594,24 +594,24 @@ static int new_file_size(const char *name, size_t size, uint8_t shrink) {
 
 int set_file_size(const char *name, size_t size) {
 	fatal_check();
-	uint32_t blk = get_file_block(name);
+	LIST_TYPE blk = get_file_block(name);
 	chk_err_e();
 	size_t block_num = (size / BLOCK_SIZE);
-	uint32_t total = get_block_len(blk);
+	LIST_TYPE total = get_block_len(blk);
 	chk_err_e();
 	if (block_num < total && block_num) {
-		uint32_t last = get_block_itter(blk, block_num);
+		LIST_TYPE last = get_block_itter(blk, block_num);
 		chk_err_e();
-		uint32_t del = get_nextblock(last);
+		LIST_TYPE del = get_nextblock(last);
 		chk_err_e();
 		del_block(del);
 		chk_err_e();
 		end_block(last);
 		chk_err_e();
 	} else if (block_num > total) {
-		uint32_t last = get_block_itter(blk, total);
+		LIST_TYPE last = get_block_itter(blk, total);
 		chk_err_e();
-		for (uint32_t i = total; i < block_num; i++) {
+		for (LIST_TYPE i = total; i < block_num; i++) {
 			extend_blocks(last);
 			chk_err_e();
 		}
@@ -641,10 +641,10 @@ int new_file(const char *name) {
 		err = -ERR_OK;
 	char name_padded[16] = { 0 };
 	memcpy(name_padded, name, name_len);
-	uint32_t blocks = 0;
+	LIST_TYPE blocks = 0;
 	unsigned char name_table[BLOCK_SIZE];
 	while (1) {
-		uint32_t tmp = get_nextblock(blocks);
+		LIST_TYPE tmp = get_nextblock(blocks);
 		chk_err_e();
 		if (!tmp)
 			extend_blocks(blocks);
@@ -726,7 +726,7 @@ int read_file(const char *file_name, void *buffer, size_t count,
 		return err;
 	}
 	chk_err_e();
-	uint32_t blk = get_file_block(file_name);
+	LIST_TYPE blk = get_file_block(file_name);
 	chk_err_e();
 	unsigned char BLOCKS[BLOCK_SIZE];
 	while (blk) {
@@ -772,12 +772,12 @@ int write_file(const char *file_name, void *buffer, size_t count,
 	       size_t offset) {
 	fatal_check();
 	unsigned char *buf = buffer;
-	uint32_t blk = get_file_block(file_name);
+	LIST_TYPE blk = get_file_block(file_name);
 	chk_err_e();
 	unsigned char BLOCKS[BLOCK_SIZE];
 	size_t sz = offset + count;
 	while (1) {
-		uint32_t tmp;
+		LIST_TYPE tmp;
 		if (offset >= BLOCK_SIZE) {
 			offset -= BLOCK_SIZE;
 			goto end;
@@ -826,13 +826,14 @@ end:
 	return ERR_OK;
 }
 
-static size_t print_n(uint32_t *mem, size_t len) {
+static size_t print_n(LIST_TYPE *mem, size_t len) {
 	size_t wrote = 0;
-	wrote += printf("%3d", mem[0]);
+	wrote += printf("%3d", (mem[0] == LIST_TYPE_MAX)? -1 :(int)mem[0]);
 	for (size_t i = 1; i < len; i++)
-		wrote += printf(",%3d", mem[i]);
+		wrote += printf(",%3d", (mem[i] == LIST_TYPE_MAX)? -1 :(int)mem[i]);
 	return wrote;
 }
+
 int print_fat(size_t skip) {
 	puts("FAT, linked list:");
 	unsigned char fat[BLOCK_SIZE];
@@ -842,7 +843,7 @@ int print_fat(size_t skip) {
 	}
 	for (size_t i = 0; i < TABLE_LEN; i += skip) {
 		printf("%-3ld: ", i);
-		print_n((uint32_t *)fat + i, skip);
+		print_n((LIST_TYPE *)fat + i, skip);
 		puts("");
 	}
 	return ERR_OK;
@@ -869,7 +870,7 @@ int print_file_table(void) {
 			       get_name_file(name_table, i).name,
 			       get_name_file(name_table, i).index);
 			{
-				uint32_t blk =
+				LIST_TYPE blk =
 					get_name_file(name_table, i).index;
 				while ((blk = get_nextblock(blk))) {
 					chk_err_e();

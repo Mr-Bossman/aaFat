@@ -5,8 +5,7 @@
 #include <assert.h>
 #include "aaFat.h"
 
-#define BLOCK_SIZE 0x10000
-#define TABLE_LEN (BLOCK_SIZE/4)
+#define BLOCK_SIZE 0x1000
 
 FILE *fp;
 
