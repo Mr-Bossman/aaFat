@@ -47,6 +47,7 @@ int write_file(const char *file_name, void *buf, size_t count, size_t offset);
 int print_fat(size_t skip);
 int print_file_table(void);
 int print_ERR(void);
+const char *get_err_name(void);
 
 #define ENUMS(x) [x] = #x
 typedef enum ERR {

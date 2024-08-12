@@ -16,8 +16,8 @@
 
 #define min(a, b) (((a) > (b)) ? (b) : (a))
 
-#define BLOCK_SIZE 1024
-#define TABLE_LEN 50
+#define BLOCK_SIZE 0x10000
+#define TABLE_LEN (BLOCK_SIZE / 4)
 
 static int write_blk(size_t offset, unsigned char *mem);
 static int read_blk(size_t offset, unsigned char *mem);
@@ -39,14 +39,18 @@ static int aafat_getattr(const char *name, struct stat *stbuf,
 
 	stbuf->st_ino = get_index_file(name + 1);
 	int ret = FAT_ERRpop();
-	if (ret)
+	if (ret) {
+		printf("%s, %s ERR: %d\n", __func__, name, ret);
 		return ret;
+	}
 	stbuf->st_mode = S_IFREG | 0644;
 	stbuf->st_nlink = 1;
 	stbuf->st_size = get_file_size(name + 1);
 	ret = FAT_ERRpop();
-	if (ret)
+	if (ret) {
+		printf("%s, %s ERR: %d\n", __func__, name, ret);
 		return ret;
+	}
 
 	stbuf->st_uid = getuid();
 	stbuf->st_gid = getgid();
@@ -69,15 +73,19 @@ static int aafat_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	filler(buf, "..", NULL, 0, 0);
 	size_t fcount = file_count();
 	int ret = FAT_ERRpop();
-	if (ret)
+	if (ret) {
+		printf("%s, ERR: %d\n", __func__, ret);
 		return ret;
+	}
 
 	for (size_t i = 0; i < fcount; i++) {
 		name_file tmp;
 		get_file_index(&tmp, i);
 		int ret = FAT_ERRpop();
-		if (ret)
+		if (ret) {
+			printf("%s, ERR: %d\n", __func__, ret);
 			return ret;
+		}
 		filler(buf, tmp.name, NULL, 0, 0);
 	}
 	return 0;
@@ -87,8 +95,15 @@ static int aafat_read(const char *name, char *buf, size_t size, off_t offset,
 		      struct fuse_file_info *fi) {
 	(void)fi;
 	size_t sz = get_file_size(name + 1);
+	int ret = FAT_ERRpop();
+
+	if (ret) {
+		printf("%s, %s ERR: %d\n", __func__, name, ret);
+		return -1;
+	}
+
 	if (read_file(name + 1, buf, min(sz - offset, size), offset) != 0) {
-		print_ERR();
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
 		return -1;
 	}
 	return min(sz - offset, size);
@@ -98,7 +113,7 @@ static int aafat_write(const char *name, const char *data, size_t size,
 		       off_t off, struct fuse_file_info *fi) {
 	(void)fi;
 	if (write_file(name + 1, (void *)data, size, off) != 0) {
-		print_ERR();
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
 		return -1;
 	}
 	return size;
@@ -111,26 +126,27 @@ static int aafat_create(const char *name, mode_t mode,
 
 	int ret = new_file(name + 1);
 	if (ret)
-		print_ERR();
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
 	return ret;
 }
 
 static int aafat_unlink(const char *name) {
 	int ret = del_file(name + 1);
 	if (ret)
-		print_ERR();
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
 	return ret;
 }
 
 static int aafat_open(const char *name, struct fuse_file_info *fi) {
 	if (get_file_exists(name + 1)) {
-		print_ERR();
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
 		return -1;
 	}
 	if ((fi->flags & O_WRONLY) && !(fi->flags & (0x800)))
 		if (set_file_size(name + 1, 0) != 0) {
 			printf("%s\n", __func__);
-			print_ERR();
+			printf("%s, %s ERR: %s\n", __func__, name,
+			       get_err_name());
 			return -1;
 		}
 
@@ -141,14 +157,28 @@ static int aafat_truncate(const char *name, off_t size,
 	(void)fi;
 
 	if (set_file_size(name + 1, size) != 0) {
-		print_ERR();
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
+		return -1;
+	}
+	return 0;
+}
+
+static int aafat_fallocate(const char *name, int mode, off_t offset, off_t len,
+			   struct fuse_file_info *fi) {
+	(void)fi;
+	if (mode != 0) {
+		return -ENOTSUP;
+	}
+
+	if (set_file_size(name + 1, offset + len) != 0) {
+		printf("%s, %s ERR: %s\n", __func__, name, get_err_name());
 		return -1;
 	}
 	return 0;
 }
 
 static int aafat_utimens(const char *name, const struct timespec *size,
-			  struct fuse_file_info *f) {
+			 struct fuse_file_info *f) {
 	(void)name;
 	(void)f;
 	(void)size;
@@ -165,6 +195,7 @@ static const struct fuse_operations aafat_oper = {
 	.unlink = aafat_unlink,
 	.utimens = aafat_utimens,
 	.truncate = aafat_truncate,
+	.fallocate = aafat_fallocate,
 };
 
 FILE *fp;
