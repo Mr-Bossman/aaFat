@@ -42,7 +42,7 @@ fuse_example: aaFat.o fuse_example.o
 
 fuse_example_test: fuse_example
 	mkdir -p test
-	./fuse_example -f test
+	./fuse_example -s -f test
 
 clean:
 	rm -rf $(BUILD_DIR)/* example printfat fuse_example
