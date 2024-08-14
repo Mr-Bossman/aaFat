@@ -2,7 +2,7 @@ BUILD_DIR = build
 CC = gcc
 CFLAGS = -Wall -Wextra -Wpedantic -Iinclude
 CFLAGS += -Wno-sign-compare
-LDFLAGS =
+LDFLAGS = 
 FUSE_CFLAGS = $(shell pkg-config fuse3 --cflags)
 FUSE_LDFLAGS = $(shell pkg-config fuse3 --libs)
 SOURCES = src/aaFat.c src/example.c src/printfat.c src/fuse_example.c src/example2.c
@@ -12,14 +12,14 @@ DEP = $(OBJECTS:%.o=%.d)
 vpath %.c $(sort $(dir $(SOURCES)))
 vpath %.o $(BUILD_DIR)
 
-.PHONY: all clean example example2 printfat fuse_example fuse_example_test
+.PHONY: all clean fuse_example_test
 
 all: printfat fuse_example example
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-$(OBJECTS): $(BUILD_DIR)
+$(OBJECTS): | $(BUILD_DIR)
 
 $(BUILD_DIR)/fuse_example.o: CFLAGS+=$(FUSE_CFLAGS)
 
